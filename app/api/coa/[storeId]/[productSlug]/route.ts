@@ -113,7 +113,6 @@ export async function GET(
         document_name,
         file_url,
         created_at,
-        completed_date,
         store_id,
         metadata,
         thumbnail_url,
