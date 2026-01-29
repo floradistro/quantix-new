@@ -184,9 +184,11 @@ export async function GET(
 
     return NextResponse.json({ data: coa })
   } catch (error: any) {
-    console.error('Error fetching COA:', error)
+    console.error('[COA] Error fetching COA:', error)
+    console.error('[COA] Error message:', error?.message)
+    console.error('[COA] Error stack:', error?.stack)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error?.message },
       { status: 500 }
     )
   }
