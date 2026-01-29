@@ -16,6 +16,7 @@ const supabase = createClient(
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  console.log('[Middleware] Processing:', pathname)
 
   // Handle legacy COA URLs: /coa/{documentId} -> /coa/{storeId}/{productSlug}
   const legacyCoaMatch = pathname.match(/^\/coa\/([a-f0-9-]{36})$/)
@@ -48,14 +49,24 @@ export async function middleware(request: NextRequest) {
     const isUuid = /^[a-f0-9-]{36}$/i.test(storeIdentifier)
 
     if (!isUuid) {
+      console.log('[Middleware] Non-UUID detected:', storeIdentifier)
       try {
         // Normalize the store identifier for matching
         const normalizedIdentifier = storeIdentifier.replace(/_/g, ' ').toLowerCase()
+        console.log('[Middleware] Normalized:', normalizedIdentifier)
 
         // Look up store by name or slug with flexible matching
-        const { data: stores } = await supabase
+        const { data: stores, error: storesError } = await supabase
           .from('stores')
           .select('id, store_name, slug')
+
+        if (storesError) {
+          console.error('[Middleware] Supabase error:', storesError)
+          return NextResponse.next()
+        }
+
+        console.log('[Middleware] Found stores:', stores?.length)
+
 
         if (stores && stores.length > 0) {
           // Find best match
@@ -78,16 +89,20 @@ export async function middleware(request: NextRequest) {
           })
 
           if (store) {
+            console.log('[Middleware] Match found! Redirecting to:', store.id)
             const newUrl = new URL(`/coa/${store.id}/${productSlug}`, request.url)
             return NextResponse.redirect(newUrl, 308) // Permanent redirect
+          } else {
+            console.log('[Middleware] No match found for:', storeIdentifier)
           }
         }
       } catch (error) {
-        console.error('Error in store name COA redirect:', error)
+        console.error('[Middleware] Error in store name redirect:', error)
       }
     }
   }
 
+  console.log('[Middleware] Passing through')
   return NextResponse.next()
 }
 
