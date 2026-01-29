@@ -15,10 +15,11 @@ const supabase = createClient(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { storeId: string; productSlug: string } }
+  { params }: { params: Promise<{ storeId: string; productSlug: string }> }
 ) {
   try {
-    let { storeId, productSlug } = params
+    const resolvedParams = await params
+    let { storeId, productSlug } = resolvedParams
 
     // Check if storeId is NOT a UUID - if so, look up the store
     const isUuid = /^[a-f0-9-]{36}$/i.test(storeId)
