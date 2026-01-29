@@ -150,8 +150,7 @@ export default function APIPage() {
                 key={index}
                 className="glass-effect p-6 rounded-2xl text-center group hover:bg-white/[0.08] transition-all duration-300"
               >
-                <div className="w-2 h-2 rounded-full bg-[#0071e3] mx-auto mb-3 group-hover:scale-150 transition-transform"></div>
-                <span className="text-white font-medium">{integration}</span>
+                <span className="text-white font-medium text-lg">{integration}</span>
               </div>
             ))}
           </div>
