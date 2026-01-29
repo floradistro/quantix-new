@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { FileText, Download, Share2, Calendar, Building2, ArrowLeft, Copy, Check, BarChart3, Table, Maximize2 } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
 import Logo from '@/app/components/Logo'
 
 interface COAData {
@@ -48,62 +47,20 @@ export default function COAPreviewPage() {
 
   const loadCOA = async () => {
     try {
-      // Clean approach: Try multiple strategies to find the COA
-      const normalizedSlug = productSlug.replace(/_/g, ' ')
+      // Fetch COA via API route (uses service role key to bypass RLS)
+      const response = await fetch(`/api/coa/${storeId}/${productSlug}`)
 
-      // Strategy 1: Direct lookup with embedded relations (most efficient)
-      const { data, error } = await supabase
-        .from('store_documents')
-        .select(`
-          id,
-          document_name,
-          file_url,
-          created_at,
-          store_id,
-          metadata,
-          thumbnail_url,
-          product_id,
-          stores(store_name, slug),
-          products(name, slug)
-        `)
-        .eq('store_id', storeId)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('Query error:', error)
-        throw error
-      }
-
-      if (!data || data.length === 0) {
-        setError('Certificate not found')
+      if (!response.ok) {
+        if (response.status === 404) {
+          setError('Certificate not found')
+        } else {
+          throw new Error('Failed to load certificate')
+        }
         return
       }
 
-      // Strategy 2: Find best match by product slug or name
-      const match = data.find((doc: any) => {
-        if (!doc.products) return false
-
-        const product = doc.products
-        const productSlugLower = product.slug?.toLowerCase()
-        const productNameSlug = product.name?.toLowerCase().replace(/\s+/g, '_')
-        const searchSlug = productSlug.toLowerCase()
-        const searchName = normalizedSlug.toLowerCase()
-
-        return (
-          productSlugLower === searchSlug ||
-          productNameSlug === searchSlug ||
-          product.name?.toLowerCase() === searchName
-        )
-      })
-
-      if (match) {
-        setCoa(match as any)
-      } else {
-        // Strategy 3: Fallback to first document if no exact match
-        // This maintains backward compatibility with old QR codes
-        setCoa(data[0] as any)
-      }
+      const { data } = await response.json()
+      setCoa(data)
 
     } catch (err: any) {
       console.error('Error loading COA:', err)
