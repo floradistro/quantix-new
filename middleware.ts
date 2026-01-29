@@ -49,16 +49,38 @@ export async function middleware(request: NextRequest) {
 
     if (!isUuid) {
       try {
-        // Look up store by name or slug
-        const { data: store } = await supabase
-          .from('stores')
-          .select('id')
-          .or(`store_name.ilike.${storeIdentifier.replace(/_/g, ' ')},slug.eq.${storeIdentifier}`)
-          .single()
+        // Normalize the store identifier for matching
+        const normalizedIdentifier = storeIdentifier.replace(/_/g, ' ').toLowerCase()
 
-        if (store) {
-          const newUrl = new URL(`/coa/${store.id}/${productSlug}`, request.url)
-          return NextResponse.redirect(newUrl, 308) // Permanent redirect
+        // Look up store by name or slug with flexible matching
+        const { data: stores } = await supabase
+          .from('stores')
+          .select('id, store_name, slug')
+
+        if (stores && stores.length > 0) {
+          // Find best match
+          const store = stores.find((s: any) => {
+            const storeName = s.store_name?.toLowerCase() || ''
+            const storeSlug = s.slug?.toLowerCase() || ''
+            const identifier = normalizedIdentifier
+
+            // Exact matches
+            if (storeName === identifier || storeSlug === identifier) return true
+
+            // Partial matches (identifier contains store name or vice versa)
+            if (storeName && identifier.includes(storeName)) return true
+            if (storeName && storeName.includes(identifier)) return true
+
+            // Slug match
+            if (storeSlug === storeIdentifier.toLowerCase()) return true
+
+            return false
+          })
+
+          if (store) {
+            const newUrl = new URL(`/coa/${store.id}/${productSlug}`, request.url)
+            return NextResponse.redirect(newUrl, 308) // Permanent redirect
+          }
         }
       } catch (error) {
         console.error('Error in store name COA redirect:', error)
