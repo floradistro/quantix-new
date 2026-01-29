@@ -374,11 +374,26 @@ export default function DashboardPage() {
     }
   })
 
-  const categories = Array.from(categoryMap.values()).sort((a, b) => b.count - a.count)
+  console.log('📊 Category map:', categoryMap)
+  console.log('📊 Total COAs:', coas.length)
+
+  // If no categories, create a default "All Documents" category
+  let categories = Array.from(categoryMap.values()).sort((a, b) => b.count - a.count)
+
+  if (categories.length === 0 && coas.length > 0) {
+    categories = [{
+      id: 'all',
+      name: 'All Documents',
+      slug: 'all',
+      icon: '📄',
+      count: coas.length
+    }]
+    console.log('⚠️ No categories found, using default "All Documents"')
+  }
 
   const filteredCOAs = coas.filter(coa => {
     const category = (coa.product as any)?.primary_category
-    const matchesCategory = !selectedCategory || category?.id === selectedCategory
+    const matchesCategory = !selectedCategory || selectedCategory === 'all' || category?.id === selectedCategory
 
     const matchesSearch = coa.document_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          coa.metadata?.sample_id?.toLowerCase().includes(searchTerm.toLowerCase())
