@@ -26,13 +26,15 @@ export async function GET(request: NextRequest) {
 
     const pdfBuffer = await response.arrayBuffer()
 
-    // Return PDF with proper headers
+    // Return PDF with proper headers (NO CACHE)
     return new NextResponse(pdfBuffer, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': 'inline',
-        'Cache-Control': 'public, max-age=3600',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
         'Access-Control-Allow-Origin': '*',
       },
     })
