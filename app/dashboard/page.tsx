@@ -65,6 +65,9 @@ interface COA {
   thumbnail_url?: string
   product_id?: string
   product?: {
+    id: string
+    name: string
+    slug: string
     primary_category_id?: string
     primary_category?: {
       id: string
@@ -235,7 +238,7 @@ export default function DashboardPage() {
       const from = (pageNum - 1) * ITEMS_PER_PAGE
       const to = from + ITEMS_PER_PAGE - 1
 
-      // Simplified query - get COAs without nested joins
+      // Query with product information for SEO-friendly URLs
       const { data: storeCoas, error: coasError, count } = await supabase
         .from('store_documents')
         .select(`
@@ -247,7 +250,8 @@ export default function DashboardPage() {
           metadata,
           document_type,
           thumbnail_url,
-          product_id
+          product_id,
+          products(id, name, slug, primary_category_id)
         `, { count: 'exact' })
         .eq('store_id', storeId)
         .eq('is_active', true)
@@ -331,9 +335,37 @@ export default function DashboardPage() {
     setIsSelectionMode(false)
   }
 
+  // Helper function to generate SEO-friendly COA URL
+  const getCoaUrl = (coa: COA): string => {
+    const product = coa.product as any
+    let productSlug: string
+
+    if (product?.slug) {
+      // Use the product's slug if available
+      productSlug = product.slug
+    } else if (product?.name) {
+      // Generate slug from product name
+      productSlug = product.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+    } else if (coa.document_name) {
+      // Fallback to document name
+      productSlug = coa.document_name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+    } else {
+      // Last resort: use document ID
+      productSlug = coa.id
+    }
+
+    return `${window.location.origin}/coa/${coa.store_id}/${productSlug}`
+  }
+
   const handleShare = async () => {
     const selectedCOAData = filteredCOAs.filter(coa => selectedCOAs.has(coa.id))
-    const shareURLs = selectedCOAData.map(coa => `${window.location.origin}/coa/${coa.id}`)
+    const shareURLs = selectedCOAData.map(coa => getCoaUrl(coa))
 
     if (navigator.share && selectedCOAData.length === 1) {
       try {
@@ -359,16 +391,17 @@ export default function DashboardPage() {
       .filter(coa => selectedCOAs.has(coa.id))
       .map(coa => ({
         name: coa.document_name,
-        shareUrl: `${window.location.origin}/coa/${coa.id}`,
+        shareUrl: getCoaUrl(coa),
         pdfUrl: coa.file_url,
         date: new Date(coa.created_at).toLocaleDateString(),
-        category: (coa.product as any)?.primary_category?.name || 'Unknown'
+        category: (coa.product as any)?.primary_category?.name || 'Unknown',
+        productName: (coa.product as any)?.name || coa.document_name
       }))
 
     const csvContent = [
-      'Name,Share URL,PDF URL,Date,Category',
+      'Name,Product,Share URL,PDF URL,Date,Category',
       ...selectedCOAData.map(item =>
-        `"${item.name}","${item.shareUrl}","${item.pdfUrl}","${item.date}","${item.category}"`
+        `"${item.name}","${item.productName}","${item.shareUrl}","${item.pdfUrl}","${item.date}","${item.category}"`
       )
     ].join('\n')
 
@@ -692,7 +725,7 @@ export default function DashboardPage() {
                 ) : (
                   <Link
                     key={coa.id}
-                    href={`/coa/${coa.id}`}
+                    href={getCoaUrl(coa)}
                     className="group block transition-all duration-200 relative"
                     onMouseDown={() => handleLongPressStart(coa.id)}
                     onMouseUp={handleLongPressEnd}
