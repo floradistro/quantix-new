@@ -191,10 +191,10 @@ export default function COAPreviewPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Sidebar - Metadata */}
-          <div className="lg:col-span-1 space-y-6">
+          <div className="lg:col-span-1 space-y-4 sm:space-y-6">
             {/* Document Info */}
             <div className="glass-effect rounded-xl p-6 space-y-4">
               <h2 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -289,7 +289,7 @@ export default function COAPreviewPage() {
           </div>
 
           {/* Main Content - PDF Viewer */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             {/* PDF Viewer */}
             <div className={`glass-effect rounded-xl overflow-hidden ${isFullscreen ? 'fixed inset-4 z-50' : ''}`}>
               <div className="bg-surface/80 border-b border-white/10 px-4 py-3 flex items-center justify-between">
@@ -302,11 +302,15 @@ export default function COAPreviewPage() {
                   <Maximize2 className="w-4 h-4" />
                 </button>
               </div>
-              <div className={`bg-gray-100 ${isFullscreen ? 'h-[calc(100%-48px)]' : 'h-[600px] lg:h-[800px]'}`}>
+              <div className={`bg-gray-100 ${isFullscreen ? 'h-[calc(100%-48px)]' : 'h-[70vh] sm:h-[600px] lg:h-[800px]'}`}>
                 <iframe
-                  src={`${coa.file_url}#view=FitH&toolbar=1&navpanes=1&scrollbar=1`}
+                  src={`${coa.file_url}#view=Fit&toolbar=1&navpanes=0&scrollbar=1&zoom=page-fit`}
                   className="w-full h-full"
                   title="Certificate of Analysis PDF"
+                  style={{
+                    border: 'none',
+                    display: 'block'
+                  }}
                 />
               </div>
             </div>
