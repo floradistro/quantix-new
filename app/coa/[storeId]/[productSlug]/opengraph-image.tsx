@@ -9,7 +9,7 @@ export const size = {
 }
 export const contentType = 'image/png'
 
-export default async function Image({ params }: { params: { id: string } }) {
+export default async function Image({ params }: { params: { storeId: string; productSlug: string } }) {
   try {
     // Fetch COA data
     const { data: coa } = await supabase
@@ -17,12 +17,17 @@ export default async function Image({ params }: { params: { id: string } }) {
       .select(`
         document_name,
         created_at,
-        stores!inner(store_name)
+        stores!inner(store_name),
+        products!inner(name, slug)
       `)
-      .eq('id', params.id)
+      .eq('store_id', params.storeId)
+      .eq('products.slug', params.productSlug)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .single()
 
-    const documentName = coa?.document_name || 'Certificate of Analysis'
+    const productName = (coa?.products as any)?.name || coa?.document_name || 'Certificate of Analysis'
     const storeName = (coa?.stores as any)?.store_name || 'Quantix Analytics'
     const date = coa?.created_at
       ? new Date(coa.created_at).toLocaleDateString('en-US', {
@@ -109,7 +114,7 @@ export default async function Image({ params }: { params: { id: string } }) {
               overflow: 'hidden',
             }}
           >
-            {documentName}
+            {productName}
           </div>
 
           {/* Metadata */}
