@@ -218,9 +218,9 @@ export default function DashboardPage() {
           document_type,
           thumbnail_url,
           product_id,
-          products!inner(
+          product:products(
             primary_category_id,
-            categories!products_primary_category_id_fkey(
+            primary_category:categories!products_primary_category_id_fkey(
               id,
               name,
               slug,
@@ -230,7 +230,6 @@ export default function DashboardPage() {
         `, { count: 'exact' })
         .eq('store_id', storeId)
         .eq('is_active', true)
-        .not('product_id', 'is', null)
         .order('created_at', { ascending: false })
         .range(from, to)
 
@@ -243,9 +242,9 @@ export default function DashboardPage() {
       console.log('📄 Loaded', storeCoas?.length || 0, 'COAs for store (total:', count, ')')
 
       if (pageNum === 1) {
-        setCoas(storeCoas || [])
+        setCoas((storeCoas as any) || [])
       } else {
-        setCoas(prev => [...prev, ...(storeCoas || [])])
+        setCoas(prev => [...prev, ...((storeCoas as any) || [])])
       }
 
       setHasMore((count || 0) > pageNum * ITEMS_PER_PAGE)
