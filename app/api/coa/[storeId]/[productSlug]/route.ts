@@ -57,9 +57,9 @@ export async function GET(
 
       // Exact matches (highest priority)
       if (doc.products) {
-        const product = doc.products
-        const productSlugLower = product.slug?.toLowerCase()
-        const productNameLower = product.name?.toLowerCase()
+        const product = doc.products as any
+        const productSlugLower = product?.slug?.toLowerCase()
+        const productNameLower = product?.name?.toLowerCase()
 
         if (productSlugLower === productSlug.toLowerCase()) {
           score = 100 // Perfect slug match
