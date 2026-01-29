@@ -48,9 +48,14 @@ export default function COAPreviewPage() {
   const loadCOA = async () => {
     try {
       // Fetch COA via API route (uses service role key to bypass RLS)
-      const response = await fetch(`/api/coa/${storeId}/${productSlug}`)
+      const apiUrl = `/api/coa/${storeId}/${productSlug}`
+      console.log('Fetching COA from:', apiUrl)
+
+      const response = await fetch(apiUrl)
+      console.log('Response status:', response.status)
 
       if (!response.ok) {
+        console.error('Response not OK:', response.status, response.statusText)
         if (response.status === 404) {
           setError('Certificate not found')
         } else {
@@ -59,8 +64,15 @@ export default function COAPreviewPage() {
         return
       }
 
-      const { data } = await response.json()
-      setCoa(data)
+      const result = await response.json()
+      console.log('API response:', result)
+
+      if (result.data) {
+        setCoa(result.data)
+      } else {
+        console.error('No data in response:', result)
+        setError('Certificate not found')
+      }
 
     } catch (err: any) {
       console.error('Error loading COA:', err)
