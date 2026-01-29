@@ -42,7 +42,7 @@ function PDFPreview({ pdfUrl, title }: { pdfUrl: string; title: string }) {
       </div>
       {isVisible && (
         <iframe
-          src={`/api/pdf-proxy?url=${encodeURIComponent(pdfUrl)}#view=Fit&toolbar=0&navpanes=0&scrollbar=0&page=1&zoom=page-width`}
+          src={`/api/pdf-proxy?url=${encodeURIComponent(pdfUrl)}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitV`}
           className="w-full h-full absolute inset-0"
           title={`PDF preview: ${title}`}
           loading="lazy"
