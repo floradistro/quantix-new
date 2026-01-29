@@ -11,10 +11,10 @@ export default function Navigation() {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-transparent backdrop-blur-xl">
-      <div className="max-w-7xl mx-auto px-8 lg:px-12">
-        <div className="flex items-center justify-between h-[72px]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12">
+        <div className="flex items-center justify-between h-[60px] sm:h-[72px]">
           {/* Logo */}
-          <Logo />
+          <Logo size="sm" showText={true} />
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center gap-10">
@@ -53,7 +53,7 @@ export default function Navigation() {
           </div>
 
           {/* CTA Button */}
-          <Link href="/login" className="bg-[#0071e3] hover:bg-[#0077ed] text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-200 ease-out text-[15px]">
+          <Link href="/login" className="bg-[#0071e3] hover:bg-[#0077ed] text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg font-medium transition-all duration-200 ease-out text-sm sm:text-[15px]">
             Client Login
           </Link>
         </div>

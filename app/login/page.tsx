@@ -37,27 +37,27 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 lg:px-8 bg-background">
+    <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-background">
       {/* Login Card */}
       <div className="relative w-full max-w-md">
         {/* Back to Home */}
         <Link
           href="/"
-          className="inline-flex items-center space-x-2 text-white hover:opacity-80 transition-opacity mb-8"
+          className="inline-flex items-center space-x-2 text-white hover:opacity-80 transition-opacity mb-6 sm:mb-8"
         >
           <ArrowLeft className="w-4 h-4" />
           <span className="text-sm">Back to home</span>
         </Link>
 
         {/* Card */}
-        <div className="glass-effect p-8 rounded-2xl space-y-8 shadow-soft-lg animate-fade-in">
+        <div className="glass-effect p-6 sm:p-8 rounded-2xl space-y-6 sm:space-y-8 shadow-soft-lg animate-fade-in">
           {/* Header */}
           <div className="text-center space-y-2">
-            <div className="flex justify-center mb-4">
-              <Logo size="lg" showText={false} href="/" />
+            <div className="flex justify-center mb-3 sm:mb-4">
+              <Logo size="md" showText={false} href="/" />
             </div>
-            <h1 className="text-3xl font-bold text-white">Client Portal</h1>
-            <p className="text-white">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">Client Portal</h1>
+            <p className="text-sm sm:text-base text-white">
               Access your test results and certificates of analysis
             </p>
           </div>
@@ -71,14 +71,14 @@ export default function LoginPage() {
           )}
 
           {/* Form */}
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={handleLogin} className="space-y-5 sm:space-y-6">
             {/* Email Field */}
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium text-white">
+              <label htmlFor="email" className="text-xs sm:text-sm font-medium text-white">
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
+                <Mail className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 sm:w-5 h-4 sm:h-5 text-white/50" />
                 <input
                   id="email"
                   type="email"
@@ -86,7 +86,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@company.com"
                   required
-                  className="w-full pl-12 pr-4 py-3 bg-surface-light border border-white/10 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-quantix-accent focus:shadow-glow transition-all duration-300"
+                  className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 bg-surface-light border border-white/10 rounded-lg text-sm sm:text-base text-white placeholder-white/50 focus:outline-none focus:border-quantix-accent focus:shadow-glow transition-all duration-300"
                 />
               </div>
             </div>
@@ -94,18 +94,18 @@ export default function LoginPage() {
             {/* Password Field */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label htmlFor="password" className="text-sm font-medium text-white">
+                <label htmlFor="password" className="text-xs sm:text-sm font-medium text-white">
                   Password
                 </label>
                 <Link
                   href="/forgot-password"
-                  className="text-sm text-quantix-accent hover:text-quantix-accent-hover transition-colors"
+                  className="text-xs sm:text-sm text-quantix-accent hover:text-quantix-accent-hover transition-colors"
                 >
                   Forgot password?
                 </Link>
               </div>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
+                <Lock className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 sm:w-5 h-4 sm:h-5 text-white/50" />
                 <input
                   id="password"
                   type="password"
@@ -113,7 +113,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full pl-12 pr-4 py-3 bg-surface-light border border-white/10 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-quantix-accent focus:shadow-glow transition-all duration-300"
+                  className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 bg-surface-light border border-white/10 rounded-lg text-sm sm:text-base text-white placeholder-white/50 focus:outline-none focus:border-quantix-accent focus:shadow-glow transition-all duration-300"
                 />
               </div>
             </div>
@@ -122,7 +122,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full btn-primary py-4 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full btn-primary py-3 sm:py-4 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
