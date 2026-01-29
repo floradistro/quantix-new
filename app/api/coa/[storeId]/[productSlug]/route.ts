@@ -3,6 +3,9 @@ import { createClient } from '@supabase/supabase-js'
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs'
+// Disable all caching for this API route
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export async function GET(
   request: NextRequest,
@@ -197,7 +200,13 @@ export async function GET(
     const coa = bestMatch
     console.log(`[COA Matching] Returning: ${coa.document_name} (score: ${matchScore})`)
 
-    return NextResponse.json({ data: coa })
+    return NextResponse.json({ data: coa }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    })
   } catch (error: any) {
     console.error('[COA] Error fetching COA:', error)
     console.error('[COA] Error message:', error?.message)
