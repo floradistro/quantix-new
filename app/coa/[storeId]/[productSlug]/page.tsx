@@ -59,7 +59,7 @@ export default function COAPreviewPage() {
       const apiUrl = `/api/coa/${storeId}/${productSlug}`
       console.log('Fetching COA from:', apiUrl)
 
-      const response = await fetch(apiUrl)
+      const response = await fetch(apiUrl, { cache: 'no-store' })
       console.log('Response status:', response.status)
 
       if (!response.ok) {
