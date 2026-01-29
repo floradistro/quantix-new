@@ -364,7 +364,7 @@ export default function COAPreviewPage() {
               </div>
               <div className={`bg-gray-100 ${isFullscreen ? 'h-[calc(100%-48px)]' : 'h-[70vh] sm:h-[600px] lg:h-[800px]'}`}>
                 <iframe
-                  src={`${coa.file_url}#view=Fit&toolbar=1&navpanes=0&scrollbar=1&zoom=page-fit`}
+                  src={`/api/pdf-proxy?url=${encodeURIComponent(coa.file_url)}#view=Fit&toolbar=1&navpanes=0&scrollbar=1&zoom=page-fit`}
                   className="w-full h-full"
                   title="Certificate of Analysis PDF"
                   style={{
