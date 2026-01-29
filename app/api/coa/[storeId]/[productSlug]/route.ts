@@ -18,7 +18,47 @@ export async function GET(
   { params }: { params: { storeId: string; productSlug: string } }
 ) {
   try {
-    const { storeId, productSlug } = params
+    let { storeId, productSlug } = params
+
+    // Check if storeId is NOT a UUID - if so, look up the store
+    const isUuid = /^[a-f0-9-]{36}$/i.test(storeId)
+
+    if (!isUuid) {
+      // Normalize the store identifier
+      const normalizedIdentifier = storeId.replace(/_/g, ' ').toLowerCase()
+
+      // Look up store by name or slug
+      const { data: stores } = await supabase
+        .from('stores')
+        .select('id, store_name, slug')
+
+      if (stores && stores.length > 0) {
+        // Find best match
+        const store = stores.find((s: any) => {
+          const storeName = s.store_name?.toLowerCase() || ''
+          const storeSlug = s.slug?.toLowerCase() || ''
+          const identifier = normalizedIdentifier
+
+          // Exact matches
+          if (storeName === identifier || storeSlug === identifier) return true
+
+          // Partial matches
+          if (storeName && identifier.includes(storeName)) return true
+          if (storeName && storeName.includes(identifier)) return true
+
+          // Slug match
+          if (storeSlug === storeId.toLowerCase()) return true
+
+          return false
+        })
+
+        if (store) {
+          storeId = store.id
+        } else {
+          return NextResponse.json({ error: 'Store not found' }, { status: 404 })
+        }
+      }
+    }
 
     // Query with service role to bypass RLS
     const { data, error } = await supabase
