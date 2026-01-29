@@ -282,6 +282,7 @@ export default function DashboardPage() {
       e.preventDefault()
       toggleCOASelection(coaId)
     }
+    // If not in selection mode, let the Link component handle navigation
   }
 
   const toggleCOASelection = (coaId: string) => {
@@ -292,6 +293,7 @@ export default function DashboardPage() {
       } else {
         newSet.add(coaId)
       }
+      // Exit selection mode if no items selected
       if (newSet.size === 0) {
         setIsSelectionMode(false)
       }
@@ -309,10 +311,20 @@ export default function DashboardPage() {
   }
 
   const handleShare = async () => {
-    const selectedCOAData = filteredCOAs.filter(coa => selectedCOAs.has(coa.id))
-    const shareURLs = selectedCOAData.map(coa => `${window.location.origin}/coa/${coa.id}`)
+    const selectedCOAData = filteredCOAs
+      .filter(coa => selectedCOAs.has(coa.id))
+
+    // Create beautiful preview URLs on our domain
+    const shareURLs = selectedCOAData.map(coa =>
+      `${window.location.origin}/coa/${coa.id}`
+    )
+
+    const shareText = selectedCOAData.length === 1
+      ? `${selectedCOAData[0].document_name} - Certificate of Analysis`
+      : `${selectedCOAData.length} Certificates of Analysis`
 
     if (navigator.share && selectedCOAData.length === 1) {
+      // For single COA, use native share with full metadata
       try {
         await navigator.share({
           title: selectedCOAData[0].document_name || 'Certificate of Analysis',
@@ -320,12 +332,14 @@ export default function DashboardPage() {
           url: shareURLs[0]
         })
       } catch (err) {
-        console.log('Share cancelled')
+        console.log('Share cancelled or failed')
       }
     } else {
+      // For multiple or fallback: copy beautiful URLs to clipboard
       const shareContent = selectedCOAData.length === 1
         ? shareURLs[0]
         : shareURLs.map((url, i) => `${i + 1}. ${selectedCOAData[i].document_name}\n   ${url}`).join('\n\n')
+
       navigator.clipboard.writeText(shareContent)
       alert(`${selectedCOAData.length === 1 ? 'Link' : 'Links'} copied to clipboard!`)
     }
@@ -339,7 +353,7 @@ export default function DashboardPage() {
         shareUrl: `${window.location.origin}/coa/${coa.id}`,
         pdfUrl: coa.file_url,
         date: new Date(coa.created_at).toLocaleDateString(),
-        category: (coa.product as any)?.primary_category?.name || 'Unknown'
+        category: (coa.products as any)?.categories?.name || 'Unknown'
       }))
 
     const csvContent = [
@@ -364,7 +378,7 @@ export default function DashboardPage() {
   const categoryMap = new Map<string, {id: string, name: string, slug: string, icon: string, count: number}>()
 
   coas.forEach(coa => {
-    const category = (coa.product as any)?.primary_category
+    const category = (coa.products as any)?.categories
     if (category && (selectedStore === 'all' || coa.store_id === selectedStore)) {
       const existing = categoryMap.get(category.id) || { ...category, count: 0 }
       existing.count++
@@ -375,7 +389,7 @@ export default function DashboardPage() {
   const categories = Array.from(categoryMap.values()).sort((a, b) => b.count - a.count)
 
   const filteredCOAs = coas.filter(coa => {
-    const category = (coa.product as any)?.primary_category
+    const category = (coa.products as any)?.categories
     const matchesCategory = !selectedCategory || category?.id === selectedCategory
 
     const matchesSearch = coa.document_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -400,18 +414,18 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-background">
-      {/* Header - Compact & Sleek */}
+      {/* Header - Edge to Edge */}
       <div className="bg-background border-b border-white/10">
-        <div className="px-3 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 sm:gap-3">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
             <Logo size="sm" showText={false} href="/" />
-            <div>
-              <h1 className="text-base sm:text-lg font-semibold text-white leading-none">Dashboard</h1>
-              <p className="text-[10px] sm:text-xs text-white/50 mt-0.5">{user?.email}</p>
+            <div className="flex-1 sm:flex-none">
+              <h1 className="text-xl sm:text-2xl font-bold text-white">Dashboard</h1>
+              <p className="text-xs sm:text-sm text-white/60">{user?.email}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
             {/* Store Selector */}
             {stores.length > 0 && (
               <select
@@ -425,7 +439,7 @@ export default function DashboardPage() {
                     loadCOAsForStore(newStoreId, 1)
                   }
                 }}
-                className="bg-white/5 border border-white/10 rounded-lg pl-2.5 pr-7 py-1.5 text-xs sm:text-sm text-white appearance-none cursor-pointer focus:outline-none focus:border-[#0071e3]/50 transition-colors"
+                className="flex-1 sm:flex-none bg-white/5 border border-white/10 rounded-lg pl-3 pr-8 py-2 text-sm text-white appearance-none cursor-pointer focus:outline-none focus:border-[#0071e3]/50 transition-colors sm:min-w-[200px]"
               >
                 {stores.map(store => (
                   <option key={store.id} value={store.id}>
@@ -438,10 +452,10 @@ export default function DashboardPage() {
             {/* Sign Out Button */}
             <button
               onClick={handleLogout}
-              className="text-white/60 hover:text-white transition-colors p-1.5 sm:p-2"
-              title="Sign Out"
+              className="flex items-center gap-2 text-white/60 hover:text-white transition-colors px-3 py-2"
             >
-              <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
+              <LogOut className="w-5 h-5" />
+              <span className="hidden sm:inline text-sm">Sign Out</span>
             </button>
           </div>
         </div>
@@ -449,21 +463,23 @@ export default function DashboardPage() {
 
       {/* Category Selection or Filters */}
       {!selectedCategory ? (
-        <div className="px-4 sm:px-6 py-6 sm:py-8">
-          <div className="flex items-center justify-center mb-6">
-            <Logo size="lg" showText={false} />
+        <div className="px-4 sm:px-6 py-8 sm:py-12">
+          <div className="flex flex-col items-center mb-6 sm:mb-8">
+            <div className="mb-6 sm:mb-8 scale-[2.5] sm:scale-[3] transform">
+              <Logo size="lg" showText={false} href={null} />
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-white text-center mt-6 sm:mt-8">Select Product Category</h2>
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 text-center">Select Product Category</h2>
-          <div className="max-w-2xl mx-auto space-y-2">
+          <div className="max-w-2xl mx-auto">
             {categories.map((category) => (
               <button
                 key={category.id}
                 onClick={() => setSelectedCategory(category.id)}
-                className="group w-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#0071e3]/50 rounded-lg p-3 sm:p-4 transition-all duration-200 hover:translate-x-1 flex items-center justify-between"
+                className="group w-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#0071e3]/50 rounded-lg p-3 sm:p-4 mb-2 sm:mb-3 transition-all duration-200 hover:translate-x-1 flex items-center justify-between"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#0071e3] group-hover:scale-125 transition-transform"></div>
-                  <h3 className="text-white font-medium text-sm sm:text-base group-hover:text-[#0071e3] transition-colors">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="w-2 h-2 rounded-full bg-[#0071e3] group-hover:scale-125 transition-transform"></div>
+                  <h3 className="text-white font-medium text-base sm:text-lg group-hover:text-[#0071e3] transition-colors">
                     {category.name}
                   </h3>
                 </div>
@@ -471,7 +487,7 @@ export default function DashboardPage() {
                   <span className="text-white/60 text-xs sm:text-sm">
                     {category.count} {category.count === 1 ? 'certificate' : 'certificates'}
                   </span>
-                  <span className="text-white/40 group-hover:text-[#0071e3] transition-colors text-sm">→</span>
+                  <span className="text-white/40 group-hover:text-[#0071e3] transition-colors">→</span>
                 </div>
               </button>
             ))}
@@ -482,104 +498,104 @@ export default function DashboardPage() {
           {/* Selection Mode Toolbar */}
           {isSelectionMode && (
             <div className="bg-[#0071e3] border-b border-[#0071e3] sticky top-0 z-20">
-              <div className="px-3 sm:px-6 py-2 flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div className="px-4 sm:px-6 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
                   <button
                     onClick={deselectAll}
                     className="text-white hover:text-white/80 transition-colors"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-5 h-5" />
                   </button>
-                  <span className="text-white font-medium text-xs sm:text-sm">
+                  <span className="text-white font-medium text-sm sm:text-base">
                     {selectedCOAs.size} selected
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="flex items-center gap-2 sm:gap-3">
                   <button
                     onClick={selectAll}
-                    className="text-xs text-white hover:text-white/80 transition-colors px-2 py-1 rounded-lg border border-white/20"
+                    className="text-xs sm:text-sm text-white hover:text-white/80 transition-colors px-2 sm:px-3 py-1.5 rounded-lg border border-white/20"
                   >
-                    All
+                    Select All
                   </button>
                   <button
                     onClick={handleShare}
-                    className="flex items-center gap-1 text-white hover:bg-white/10 transition-colors px-2 py-1 rounded-lg"
+                    className="flex items-center gap-1.5 text-white hover:bg-white/10 transition-colors px-2 sm:px-3 py-1.5 rounded-lg"
                   >
-                    <Share2 className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline text-xs">Share</span>
+                    <Share2 className="w-4 h-4" />
+                    <span className="hidden sm:inline text-sm">Share</span>
                   </button>
                   <button
                     onClick={handleExport}
-                    className="flex items-center gap-1 text-white hover:bg-white/10 transition-colors px-2 py-1 rounded-lg"
+                    className="flex items-center gap-1.5 text-white hover:bg-white/10 transition-colors px-2 sm:px-3 py-1.5 rounded-lg"
                   >
-                    <Download className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline text-xs">Export</span>
+                    <Download className="w-4 h-4" />
+                    <span className="hidden sm:inline text-sm">Export</span>
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Filters - Compact & Sticky */}
-          <div className="bg-surface/50 border-b border-white/10 sticky top-0 z-10 backdrop-blur-xl" style={{ top: isSelectionMode ? '48px' : '0' }}>
-            <div className="px-3 sm:px-6 py-2.5 flex flex-wrap sm:flex-nowrap gap-2 items-center">
-              {/* Back Button */}
+          {/* Filters - Sticky */}
+          <div className="bg-surface/50 border-b border-white/10 sticky top-0 z-10 backdrop-blur-xl" style={{ top: isSelectionMode ? '52px' : '0' }}>
+            <div className="px-4 sm:px-6 py-3 space-y-3">
+              {/* Back Button - Full Width on Mobile */}
               <button
                 onClick={() => {
                   setSelectedCategory(null)
                   setIsSelectionMode(false)
                   setSelectedCOAs(new Set())
                 }}
-                className="flex items-center gap-1.5 text-white/60 hover:text-white transition-colors text-xs sm:text-sm"
+                className="flex items-center gap-2 text-white/60 hover:text-white transition-colors text-sm"
               >
                 <span>←</span>
-                <span className="hidden sm:inline">Back</span>
+                <span>Back to Categories</span>
               </button>
 
-              {/* Category Title */}
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm sm:text-base font-semibold text-white">
-                  {categories.find(c => c.id === selectedCategory)?.name || 'Products'}
-                </h2>
-                <span className="text-[10px] sm:text-xs text-white/50">
-                  {filteredCOAs.length}
-                </span>
-              </div>
+              {/* Search and Filter Row */}
+              <div className="flex gap-2 sm:gap-3">
+                {/* Search */}
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:border-[#0071e3]/50 transition-colors"
+                  />
+                </div>
 
-              <div className="hidden sm:block flex-1" />
-
-              {/* Search */}
-              <div className="relative flex-1 sm:flex-none sm:w-48">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg pl-8 pr-2 py-1.5 text-xs sm:text-sm text-white placeholder-white/40 focus:outline-none focus:border-[#0071e3]/50 transition-colors"
-                />
-              </div>
-
-              {/* Test Type Filter */}
-              <div className="relative">
-                <Filter className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
-                <select
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                  className="bg-white/5 border border-white/10 rounded-lg pl-7 pr-8 py-1.5 text-xs sm:text-sm text-white appearance-none cursor-pointer focus:outline-none focus:border-[#0071e3]/50 transition-colors"
-                >
-                  <option value="all">All Tests</option>
-                  <option value="cannabis">Cannabis</option>
-                  <option value="peptide">Peptide</option>
-                  <option value="potency">Potency</option>
-                  <option value="safety">Safety</option>
-                </select>
+                {/* Test Type Filter */}
+                <div className="relative min-w-[120px] sm:min-w-[140px]">
+                  <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-8 py-2 text-sm text-white appearance-none cursor-pointer focus:outline-none focus:border-[#0071e3]/50 transition-colors"
+                  >
+                    <option value="all">All Tests</option>
+                    <option value="cannabis">Cannabis</option>
+                    <option value="peptide">Peptide</option>
+                    <option value="potency">Potency</option>
+                    <option value="safety">Safety</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
 
           {/* COA Grid */}
-          <div className="px-3 sm:px-6 py-4 sm:py-6">
+          <div className="px-4 sm:px-6 py-4 sm:py-6">
+            {/* Category Header */}
+            <div className="mb-4 sm:mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">
+                {categories.find(c => c.id === selectedCategory)?.name || 'Products'}
+              </h2>
+              <p className="text-white/60 text-xs sm:text-sm">
+                Showing {filteredCOAs.length} {filteredCOAs.length === 1 ? 'certificate' : 'certificates'}
+              </p>
+            </div>
 
             {filteredCOAs.length === 0 ? (
           <div className="text-center py-20">
@@ -595,43 +611,44 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5 sm:gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
               {filteredCOAs.map((coa) => {
                 const isSelected = selectedCOAs.has(coa.id)
+
                 const cardContent = (
                   <>
                     {/* Selection Checkbox Overlay */}
                     {isSelectionMode && (
-                      <div className="absolute top-1.5 right-1.5 z-10">
+                      <div className="absolute top-2 right-2 z-10">
                         {isSelected ? (
-                          <CheckCircle2 className="w-5 h-5 text-[#0071e3] fill-[#0071e3] bg-white rounded-full" />
+                          <CheckCircle2 className="w-6 h-6 text-[#0071e3] fill-[#0071e3] bg-white rounded-full" />
                         ) : (
-                          <Circle className="w-5 h-5 text-white bg-black/30 rounded-full" />
+                          <Circle className="w-6 h-6 text-white bg-black/30 rounded-full" />
                         )}
                       </div>
                     )}
 
                     {/* Preview Card */}
-                    <div className={`aspect-[8.5/11] bg-white rounded-lg shadow-lg overflow-hidden mb-1.5 transition-all duration-200 relative ${
-                      isSelected ? 'ring-2 ring-[#0071e3] scale-[0.96]' : 'group-hover:shadow-xl group-hover:scale-[1.01]'
+                    <div className={`aspect-[8.5/11] bg-white rounded-lg shadow-2xl overflow-hidden mb-2 sm:mb-3 transition-all duration-200 relative ${
+                      isSelected ? 'ring-4 ring-[#0071e3] scale-[0.95]' : 'group-hover:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] group-hover:scale-[1.02]'
                     }`}>
                       <PDFPreview pdfUrl={coa.file_url} title={coa.document_name} />
 
                       {/* Hover brightness overlay */}
                       <div className={`absolute inset-0 transition-all duration-200 pointer-events-none ${
-                        isSelected ? 'bg-[#0071e3]/10' : 'bg-black/5 group-hover:bg-black/10'
+                        isSelected ? 'bg-[#0071e3]/20' : 'bg-black/5 group-hover:bg-black/10'
                       }`}></div>
                     </div>
 
                     {/* Info Below */}
-                    <div className="px-0.5">
-                      <h3 className={`text-[10px] sm:text-xs font-medium truncate mb-0.5 transition-colors ${
+                    <div className="px-1">
+                      <h3 className={`text-xs sm:text-sm font-medium truncate mb-1 transition-colors ${
                         isSelected ? 'text-[#0071e3]' : 'text-white group-hover:text-[#0071e3]'
                       }`}>
                         {coa.document_name || `COA #${coa.id.slice(0, 8)}`}
                       </h3>
-                      <div className="flex items-center text-[9px] sm:text-[10px] text-white/50">
-                        <span>{new Date(coa.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                      <div className="flex items-center gap-2 text-[10px] sm:text-xs text-white/50">
+                        <span>{new Date(coa.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                       </div>
                     </div>
                   </>
@@ -672,7 +689,7 @@ export default function DashboardPage() {
 
             {/* Load More Button */}
             {hasMore && (
-              <div className="flex justify-center mt-6">
+              <div className="flex justify-center mt-12">
                 <button
                   onClick={() => {
                     const nextPage = page + 1
@@ -680,11 +697,11 @@ export default function DashboardPage() {
                     loadCOAsForStore(selectedStore, nextPage)
                   }}
                   disabled={isLoadingMore}
-                  className="px-6 py-2 bg-white/10 hover:bg-[#0071e3] border border-white/20 hover:border-[#0071e3] rounded-lg text-white text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-8 py-3 bg-white/10 hover:bg-[#0071e3] border border-white/20 hover:border-[#0071e3] rounded-lg text-white font-medium transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
                   {isLoadingMore ? (
                     <span className="flex items-center gap-2">
-                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                       Loading...
                     </span>
                   ) : (

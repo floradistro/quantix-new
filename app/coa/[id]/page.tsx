@@ -75,7 +75,7 @@ export default function COAPreviewPage() {
 
       if (error) throw error
 
-      setCoa(data)
+      setCoa(data as any)
     } catch (err: any) {
       console.error('Error loading COA:', err)
       setError('Certificate not found')

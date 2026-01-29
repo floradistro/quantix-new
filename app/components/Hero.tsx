@@ -84,7 +84,7 @@ export default function Hero() {
               alt={s.title}
               className="w-full h-full object-cover animate-ken-burns"
               loading={index === 0 ? 'eager' : 'lazy'}
-              fetchpriority={index === 0 ? 'high' : 'auto'}
+              fetchPriority={index === 0 ? 'high' : 'auto'}
             />
             {/* Balanced gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/50 to-black/60"></div>
@@ -144,7 +144,7 @@ export default function Hero() {
               className="inline-flex items-center justify-center animate-fade-in mb-6 sm:mb-8"
             >
               <div className="scale-[2] sm:scale-[2.5] lg:scale-[3] transform">
-                <Logo size="lg" showText={false} href={null} />
+                <Logo size="lg" showText={false} />
               </div>
             </div>
 

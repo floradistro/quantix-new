@@ -26,7 +26,7 @@ export default function AboutPage() {
             {/* Logo */}
             <div className="inline-flex items-center justify-center animate-fade-in mb-8">
               <div className="scale-[3] transform">
-                <Logo size="lg" showText={false} href={null} />
+                <Logo size="lg" showText={false} />
               </div>
             </div>
 

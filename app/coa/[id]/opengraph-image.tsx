@@ -23,7 +23,7 @@ export default async function Image({ params }: { params: { id: string } }) {
       .single()
 
     const documentName = coa?.document_name || 'Certificate of Analysis'
-    const storeName = coa?.stores?.store_name || 'Quantix Analytics'
+    const storeName = (coa?.stores as any)?.store_name || 'Quantix Analytics'
     const date = coa?.created_at
       ? new Date(coa.created_at).toLocaleDateString('en-US', {
           year: 'numeric',
