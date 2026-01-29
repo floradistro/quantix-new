@@ -16,9 +16,16 @@ interface COAData {
   thumbnail_url?: string
   metadata?: {
     sample_id?: string
+    batch_number?: string
+    test_date?: string
+    issue_date?: string
+    lab_name?: string
     test_type?: string
     status?: string
     test_results?: any
+    thc_total?: number
+    cbd_total?: number
+    terpenes_total?: number
   }
   stores?: {
     store_name: string
@@ -218,7 +225,7 @@ export default function COAPreviewPage() {
                   <p className="text-xs text-white/50 mb-1">Date Issued</p>
                   <p className="text-sm text-white flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-[#0071e3]" />
-                    {new Date(coa.completed_date || coa.created_at).toLocaleDateString('en-US', {
+                    {new Date(coa.metadata?.issue_date || coa.created_at).toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric'
@@ -233,12 +240,65 @@ export default function COAPreviewPage() {
                   </div>
                 )}
 
+                {coa.metadata?.batch_number && (
+                  <div>
+                    <p className="text-xs text-white/50 mb-1">Batch Number</p>
+                    <p className="text-sm text-white font-mono">{coa.metadata.batch_number}</p>
+                  </div>
+                )}
+
+                {coa.metadata?.lab_name && (
+                  <div>
+                    <p className="text-xs text-white/50 mb-1">Laboratory</p>
+                    <p className="text-sm text-white">{coa.metadata.lab_name}</p>
+                  </div>
+                )}
+
+                {coa.metadata?.test_date && (
+                  <div>
+                    <p className="text-xs text-white/50 mb-1">Test Date</p>
+                    <p className="text-sm text-white">{new Date(coa.metadata.test_date).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}</p>
+                  </div>
+                )}
+
                 {coa.metadata?.test_type && (
                   <div>
                     <p className="text-xs text-white/50 mb-1">Test Type</p>
                     <p className="text-sm text-white">{coa.metadata.test_type}</p>
                   </div>
                 )}
+              </div>
+
+              {/* Cannabinoid Summary */}
+              {(coa.metadata?.thc_total || coa.metadata?.cbd_total || coa.metadata?.terpenes_total) && (
+                <div className="pt-4 border-t border-white/10 space-y-3">
+                  <h3 className="text-sm font-semibold text-white">Cannabinoid Profile</h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    {coa.metadata?.thc_total !== undefined && (
+                      <div className="bg-gradient-to-br from-green-500/20 to-green-600/10 border border-green-500/30 rounded-lg p-3 text-center">
+                        <p className="text-xs text-green-300 mb-1">THC</p>
+                        <p className="text-lg font-bold text-green-400">{coa.metadata.thc_total.toFixed(2)}%</p>
+                      </div>
+                    )}
+                    {coa.metadata?.cbd_total !== undefined && (
+                      <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/30 rounded-lg p-3 text-center">
+                        <p className="text-xs text-blue-300 mb-1">CBD</p>
+                        <p className="text-lg font-bold text-blue-400">{coa.metadata.cbd_total.toFixed(2)}%</p>
+                      </div>
+                    )}
+                    {coa.metadata?.terpenes_total !== undefined && (
+                      <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-500/30 rounded-lg p-3 text-center">
+                        <p className="text-xs text-purple-300 mb-1">Terps</p>
+                        <p className="text-lg font-bold text-purple-400">{coa.metadata.terpenes_total.toFixed(2)}%</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               </div>
             </div>
 
