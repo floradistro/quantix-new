@@ -45,25 +45,38 @@ export async function GET(
       return NextResponse.json({ error: 'Certificate not found' }, { status: 404 })
     }
 
-    // Find best match by product slug or name
-    const normalizedSlug = productSlug.replace(/_/g, ' ')
+    // Find best match by product slug, name, or document name
+    const normalizedSlug = productSlug.replace(/_/g, ' ').toLowerCase()
+    const searchTerms = normalizedSlug.split(' ').filter(t => t.length > 2)
+
     const match = data.find((doc: any) => {
-      if (!doc.products) return false
+      // Try product match first
+      if (doc.products) {
+        const product = doc.products
+        const productSlugLower = product.slug?.toLowerCase()
+        const productNameLower = product.name?.toLowerCase()
 
-      const product = doc.products
-      const productSlugLower = product.slug?.toLowerCase()
-      const productNameSlug = product.name?.toLowerCase().replace(/\s+/g, '_')
-      const searchSlug = productSlug.toLowerCase()
-      const searchName = normalizedSlug.toLowerCase()
+        if (productSlugLower === productSlug.toLowerCase() ||
+            productNameLower === normalizedSlug ||
+            productNameLower?.includes(normalizedSlug) ||
+            searchTerms.every(term => productNameLower?.includes(term))) {
+          return true
+        }
+      }
 
-      return (
-        productSlugLower === searchSlug ||
-        productNameSlug === searchSlug ||
-        product.name?.toLowerCase() === searchName
-      )
+      // Try document name match (for legacy COAs without product_id)
+      const docNameLower = doc.document_name?.toLowerCase()
+      if (docNameLower === normalizedSlug ||
+          docNameLower?.includes(normalizedSlug) ||
+          searchTerms.every(term => docNameLower?.includes(term))) {
+        return true
+      }
+
+      return false
     })
 
-    const coa = match || data[0] // Fallback to first document for backward compatibility
+    // Fallback: return first document for backward compatibility
+    const coa = match || data[0]
 
     return NextResponse.json({ data: coa })
   } catch (error: any) {
