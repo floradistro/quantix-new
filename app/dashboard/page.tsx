@@ -235,7 +235,7 @@ export default function DashboardPage() {
       const from = (pageNum - 1) * ITEMS_PER_PAGE
       const to = from + ITEMS_PER_PAGE - 1
 
-      // First, let's try a simple query to see if we get any data at all
+      // Simplified query - get COAs without nested joins
       const { data: storeCoas, error: coasError, count } = await supabase
         .from('store_documents')
         .select(`
@@ -247,16 +247,7 @@ export default function DashboardPage() {
           metadata,
           document_type,
           thumbnail_url,
-          product_id,
-          product:products(
-            primary_category_id,
-            primary_category:categories(
-              id,
-              name,
-              slug,
-              icon
-            )
-          )
+          product_id
         `, { count: 'exact' })
         .eq('store_id', storeId)
         .eq('is_active', true)
@@ -264,6 +255,7 @@ export default function DashboardPage() {
         .range(from, to)
 
       console.log('📊 Query result:', { data: storeCoas, error: coasError, count })
+      console.log('📊 First COA:', storeCoas?.[0])
 
       if (coasError) {
         console.error('❌ Error loading COAs:', coasError)
