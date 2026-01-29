@@ -25,11 +25,11 @@ export async function GET(
     const isUuid = /^[a-f0-9-]{36}$/i.test(storeId)
 
     if (!isUuid) {
-      console.log(`[COA] Looking up store by name/slug: "${storeId}"`)
+      console.log(`[COA v2] Looking up store by name/slug: "${storeId}"`)
 
       // Normalize the store identifier - replace underscores with spaces
       const normalizedIdentifier = storeId.replace(/_/g, ' ')
-      console.log(`[COA] Normalized identifier: "${normalizedIdentifier}"`)
+      console.log(`[COA v2] Normalized identifier: "${normalizedIdentifier}"`)
 
       // Try multiple lookups: slug exact, name exact, name ilike
       let store = null
