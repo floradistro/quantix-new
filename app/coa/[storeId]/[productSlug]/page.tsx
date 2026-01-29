@@ -199,8 +199,8 @@ export default function COAPreviewPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="w-full px-2 sm:px-4 py-4 sm:py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
           {/* Sidebar - Metadata */}
           <div className="lg:col-span-1 space-y-4 sm:space-y-6">
             {/* Document Info */}
@@ -349,7 +349,7 @@ export default function COAPreviewPage() {
           </div>
 
           {/* Main Content - PDF Viewer */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+          <div className="lg:col-span-3 space-y-4 sm:space-y-6">
             {/* PDF Viewer */}
             <div className={`glass-effect rounded-xl overflow-hidden ${isFullscreen ? 'fixed inset-4 z-50' : ''}`}>
               <div className="bg-surface/80 border-b border-white/10 px-4 py-3 flex items-center justify-between">
@@ -362,7 +362,7 @@ export default function COAPreviewPage() {
                   <Maximize2 className="w-4 h-4" />
                 </button>
               </div>
-              <div className={`bg-gray-100 ${isFullscreen ? 'h-[calc(100%-48px)]' : 'h-[70vh] sm:h-[600px] lg:h-[800px]'}`}>
+              <div className={`bg-gray-100 ${isFullscreen ? 'h-[calc(100%-48px)]' : 'h-[85vh] sm:h-[90vh]'}`}>
                 <iframe
                   src={`/api/pdf-proxy?url=${encodeURIComponent(coa.file_url)}`}
                   className="w-full h-full"
