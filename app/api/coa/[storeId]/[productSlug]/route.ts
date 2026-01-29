@@ -24,13 +24,23 @@ export async function GET(
     const isUuid = /^[a-f0-9-]{36}$/i.test(storeId)
 
     if (!isUuid) {
+      console.log(`[COA] Looking up store by name/slug: "${storeId}"`)
+
       // Normalize the store identifier
       const normalizedIdentifier = storeId.replace(/_/g, ' ').toLowerCase()
+      console.log(`[COA] Normalized identifier: "${normalizedIdentifier}"`)
 
       // Look up store by name or slug
-      const { data: stores } = await supabase
+      const { data: stores, error: storeError } = await supabase
         .from('stores')
         .select('id, store_name, slug')
+
+      if (storeError) {
+        console.error('[COA] Error fetching stores:', storeError)
+        return NextResponse.json({ error: 'Error looking up store' }, { status: 500 })
+      }
+
+      console.log(`[COA] Found ${stores?.length || 0} stores`)
 
       if (stores && stores.length > 0) {
         // Find best match
@@ -39,24 +49,43 @@ export async function GET(
           const storeSlug = s.slug?.toLowerCase() || ''
           const identifier = normalizedIdentifier
 
+          console.log(`[COA] Checking store: "${s.store_name}" (slug: "${s.slug}")`)
+
           // Exact matches
-          if (storeName === identifier || storeSlug === identifier) return true
+          if (storeName === identifier || storeSlug === identifier) {
+            console.log(`[COA] Exact match found!`)
+            return true
+          }
 
           // Partial matches
-          if (storeName && identifier.includes(storeName)) return true
-          if (storeName && storeName.includes(identifier)) return true
+          if (storeName && identifier.includes(storeName)) {
+            console.log(`[COA] Partial match: identifier contains store name`)
+            return true
+          }
+          if (storeName && storeName.includes(identifier)) {
+            console.log(`[COA] Partial match: store name contains identifier`)
+            return true
+          }
 
           // Slug match
-          if (storeSlug === storeId.toLowerCase()) return true
+          if (storeSlug === storeId.toLowerCase()) {
+            console.log(`[COA] Slug match found!`)
+            return true
+          }
 
           return false
         })
 
         if (store) {
+          console.log(`[COA] Resolved "${storeId}" to store ID: ${store.id}`)
           storeId = store.id
         } else {
+          console.log(`[COA] No matching store found for "${storeId}"`)
           return NextResponse.json({ error: 'Store not found' }, { status: 404 })
         }
+      } else {
+        console.log('[COA] No stores in database')
+        return NextResponse.json({ error: 'No stores available' }, { status: 404 })
       }
     }
 
