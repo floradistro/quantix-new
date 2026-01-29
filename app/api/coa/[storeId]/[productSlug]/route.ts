@@ -15,11 +15,13 @@ const supabase = createClient(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ storeId: string; productSlug: string }> }
+  context: { params: Promise<{ storeId: string; productSlug: string }> }
 ) {
   try {
-    const resolvedParams = await params
+    const resolvedParams = await context.params
     let { storeId, productSlug } = resolvedParams
+
+    console.log(`[COA v3] Request for storeId: "${storeId}", productSlug: "${productSlug}"`)
 
     // Check if storeId is NOT a UUID - if so, look up the store
     const isUuid = /^[a-f0-9-]{36}$/i.test(storeId)
