@@ -11,6 +11,7 @@ interface COAData {
   document_name: string
   file_url: string
   created_at: string
+  completed_date?: string
   store_id: string
   thumbnail_url?: string
   metadata?: {
@@ -217,7 +218,7 @@ export default function COAPreviewPage() {
                   <p className="text-xs text-white/50 mb-1">Date Issued</p>
                   <p className="text-sm text-white flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-[#0071e3]" />
-                    {new Date(coa.created_at).toLocaleDateString('en-US', {
+                    {new Date(coa.completed_date || coa.created_at).toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric'
