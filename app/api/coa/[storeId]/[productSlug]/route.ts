@@ -53,7 +53,7 @@ export async function GET(
             const storeSlug = s.slug?.toLowerCase() || ''
 
             // Exact matches
-            if (storeName === normalizedIdentifier || storeSlug === storeIdentifier.toLowerCase()) {
+            if (storeName === normalizedIdentifier || storeSlug === storeId.toLowerCase()) {
               console.log(`[COA v4] Exact match: ${s.store_name}`)
               return true
             }
