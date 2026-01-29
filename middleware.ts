@@ -121,6 +121,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Only match /coa/ page routes, not API routes
-  matcher: '/coa/:path+',
+  // Only match /coa/ page routes (store-id/product-slug format)
+  // Does not match /api/coa/* API routes
+  matcher: '/coa/:storeId/:productSlug',
 }
