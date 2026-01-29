@@ -121,6 +121,35 @@ export default function DashboardPage() {
     }
   }, [selectedStore, user])
 
+  // Auto-select first category if only one exists and no category selected
+  useEffect(() => {
+    if (coas.length > 0 && !selectedCategory) {
+      // Compute categories
+      const categoryMap = new Map<string, any>()
+      coas.forEach(coa => {
+        const category = (coa.product as any)?.primary_category
+        if (category) {
+          const existing = categoryMap.get(category.id) || { ...category, count: 0 }
+          existing.count++
+          categoryMap.set(category.id, existing)
+        }
+      })
+
+      const computedCategories = Array.from(categoryMap.values())
+
+      // If no categories found, auto-select 'all'
+      if (computedCategories.length === 0) {
+        console.log('🚀 Auto-selecting "all" category')
+        setSelectedCategory('all')
+      }
+      // If only one category, auto-select it
+      else if (computedCategories.length === 1) {
+        console.log('🚀 Auto-selecting single category:', computedCategories[0].id)
+        setSelectedCategory(computedCategories[0].id)
+      }
+    }
+  }, [coas, selectedCategory])
+
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession()
 
