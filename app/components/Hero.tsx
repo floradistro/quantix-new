@@ -94,26 +94,26 @@ export default function Hero() {
         ))}
       </div>
 
-      {/* Navigation Arrows */}
+      {/* Navigation Arrows - Hidden on mobile */}
       <button
         onClick={prevSlide}
         disabled={isTransitioning}
-        className="absolute left-8 z-20 p-3 rounded-full glass-effect hover:bg-white/10 transition-all duration-200 disabled:opacity-50"
+        className="absolute left-4 sm:left-8 z-20 p-2 sm:p-3 rounded-full glass-effect hover:bg-white/10 transition-all duration-200 disabled:opacity-50 hidden sm:block"
         aria-label="Previous slide"
       >
-        <ChevronLeft className="w-6 h-6 text-white" />
+        <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
       </button>
       <button
         onClick={nextSlide}
         disabled={isTransitioning}
-        className="absolute right-8 z-20 p-3 rounded-full glass-effect hover:bg-white/10 transition-all duration-200 disabled:opacity-50"
+        className="absolute right-4 sm:right-8 z-20 p-2 sm:p-3 rounded-full glass-effect hover:bg-white/10 transition-all duration-200 disabled:opacity-50 hidden sm:block"
         aria-label="Next slide"
       >
-        <ChevronRight className="w-6 h-6 text-white" />
+        <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
       </button>
 
       {/* Slide Indicators */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-3">
+      <div className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-2 sm:gap-3">
         {slides.map((_, index) => (
           <button
             key={index}
@@ -126,7 +126,7 @@ export default function Hero() {
             }}
             className={`h-1.5 rounded-full transition-all duration-300 ${
               index === currentSlide
-                ? 'w-12 bg-quantix-accent'
+                ? 'w-8 sm:w-12 bg-quantix-accent'
                 : 'w-1.5 bg-white/40 hover:bg-white/60'
             }`}
             aria-label={`Go to slide ${index + 1}`}
@@ -135,15 +135,15 @@ export default function Hero() {
       </div>
 
       {/* Content with enhanced backdrop */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-32 sm:py-40 md:py-48">
-        <div className="text-center space-y-6 sm:space-y-8 lg:space-y-10 max-w-5xl mx-auto">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-24 sm:py-32 md:py-40 lg:py-48">
+        <div className="text-center space-y-4 sm:space-y-6 lg:space-y-8 max-w-5xl mx-auto">
           <div className="relative">
             {/* Logo */}
             <div
               key={`logo-${currentSlide}`}
-              className="inline-flex items-center justify-center animate-fade-in mb-6 sm:mb-8"
+              className="inline-flex items-center justify-center animate-fade-in mb-4 sm:mb-6"
             >
-              <div className="scale-[2] sm:scale-[2.5] lg:scale-[3] transform">
+              <div className="scale-[1.5] sm:scale-[2] lg:scale-[2.5] xl:scale-[3] transform">
                 <Logo size="lg" showText={false} />
               </div>
             </div>
@@ -151,7 +151,7 @@ export default function Hero() {
             {/* Main heading with text stroke effect */}
             <h1
               key={`title-${currentSlide}`}
-              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold text-white animate-slide-up mt-6 sm:mt-8"
+              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white animate-slide-up mt-4 sm:mt-6"
               style={{
                 textShadow: '0 2px 40px rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.3)'
               }}
@@ -162,7 +162,7 @@ export default function Hero() {
             {/* Subtitle with client types */}
             <p
               key={`subtitle-${currentSlide}`}
-              className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/90 font-medium mt-4 sm:mt-6 animate-slide-up px-4"
+              className="text-sm sm:text-base md:text-lg lg:text-xl text-white/90 font-medium mt-3 sm:mt-4 animate-slide-up px-2"
               style={{
                 textShadow: '0 2px 20px rgba(0,0,0,0.5)',
                 animationDelay: '0.05s'
@@ -174,14 +174,14 @@ export default function Hero() {
             {/* Description */}
             <div
               key={`desc-${currentSlide}`}
-              className="space-y-3 sm:space-y-4 lg:space-y-5 animate-slide-up mt-6 sm:mt-8 px-4"
+              className="space-y-2 sm:space-y-3 lg:space-y-4 animate-slide-up mt-4 sm:mt-6 px-2"
               style={{ animationDelay: '0.1s' }}
             >
-              <p className="text-base sm:text-lg md:text-xl text-white/80 max-w-3xl mx-auto"
+              <p className="text-sm sm:text-base md:text-lg text-white/80 max-w-3xl mx-auto"
                  style={{ textShadow: '0 2px 20px rgba(0,0,0,0.5)' }}>
                 {slide.description}
               </p>
-              <p className="text-sm sm:text-base md:text-lg text-white/70 max-w-2xl mx-auto"
+              <p className="text-xs sm:text-sm md:text-base text-white/70 max-w-2xl mx-auto"
                  style={{ textShadow: '0 2px 12px rgba(0,0,0,0.4)' }}>
                 Fast Results • Detailed Reports • Full Compliance
               </p>
@@ -189,13 +189,13 @@ export default function Hero() {
 
             {/* CTA Buttons */}
             <div
-              className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-8 sm:pt-10 animate-slide-up px-4"
+              className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 pt-6 sm:pt-8 animate-slide-up px-2 max-w-md sm:max-w-none mx-auto"
               style={{ animationDelay: '0.2s' }}
             >
-              <Link href="/testing" className="w-full sm:w-auto bg-[#0071e3] hover:bg-[#0077ed] text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 ease-out text-[15px] sm:text-[17px] shadow-sm text-center">
+              <Link href="/testing" className="bg-[#0071e3] hover:bg-[#0077ed] text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 ease-out text-sm sm:text-base shadow-sm text-center">
                 {slide.cta}
               </Link>
-              <Link href="/login" className="w-full sm:w-auto bg-transparent hover:bg-white/5 text-[#0071e3] px-6 py-3 rounded-lg font-medium transition-all duration-200 text-[15px] sm:text-[17px] text-center">
+              <Link href="/login" className="bg-white/10 hover:bg-white/20 border border-white/20 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 text-sm sm:text-base text-center">
                 Client Portal
               </Link>
             </div>

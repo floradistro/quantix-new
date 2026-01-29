@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Mail, Phone, Clock } from 'lucide-react'
+import { Mail, Clock } from 'lucide-react'
 import Logo from './Logo'
 
 export default function Footer() {
@@ -23,22 +23,22 @@ export default function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link href="/testing" className="text-sm sm:text-[15px] text-white/60 hover:text-quantix-accent transition-colors duration-200">
-                  Cannabis Testing
+                  Testing Services
                 </Link>
               </li>
               <li>
-                <Link href="/testing" className="text-sm sm:text-[15px] text-white/60 hover:text-quantix-accent transition-colors duration-200">
-                  Peptide Analysis
-                </Link>
-              </li>
-              <li>
-                <Link href="/coa" className="text-sm sm:text-[15px] text-white/60 hover:text-quantix-accent transition-colors duration-200">
-                  Verify COA
+                <Link href="/services" className="text-sm sm:text-[15px] text-white/60 hover:text-quantix-accent transition-colors duration-200">
+                  Pricing
                 </Link>
               </li>
               <li>
                 <Link href="/login" className="text-sm sm:text-[15px] text-white/60 hover:text-quantix-accent transition-colors duration-200">
                   Client Portal
+                </Link>
+              </li>
+              <li>
+                <Link href="/dashboard" className="text-sm sm:text-[15px] text-white/60 hover:text-quantix-accent transition-colors duration-200">
+                  Dashboard
                 </Link>
               </li>
             </ul>
@@ -50,7 +50,7 @@ export default function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link href="/about" className="text-sm sm:text-[15px] text-white/60 hover:text-quantix-accent transition-colors duration-200">
-                  About
+                  About Us
                 </Link>
               </li>
               <li>
@@ -59,8 +59,8 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/pricing" className="text-sm sm:text-[15px] text-white/60 hover:text-quantix-accent transition-colors duration-200">
-                  Pricing
+                <Link href="/services" className="text-sm sm:text-[15px] text-white/60 hover:text-quantix-accent transition-colors duration-200">
+                  Services
                 </Link>
               </li>
               <li>
@@ -75,12 +75,6 @@ export default function Footer() {
           <div className="space-y-3 sm:space-y-4">
             <h4 className="text-white font-semibold text-sm sm:text-[15px]">Get in Touch</h4>
             <ul className="space-y-2 sm:space-y-3">
-              <li className="flex items-center gap-2 sm:gap-3">
-                <Phone className="w-4 h-4 text-quantix-accent flex-shrink-0" />
-                <a href="tel:+19195550147" className="text-sm sm:text-[15px] text-white/60 hover:text-white transition-colors duration-200">
-                  (919) 555-0147
-                </a>
-              </li>
               <li className="flex items-center gap-2 sm:gap-3">
                 <Mail className="w-4 h-4 text-quantix-accent flex-shrink-0" />
                 <a href="mailto:support@quantixanalytics.com" className="text-sm sm:text-[15px] text-white/60 hover:text-white transition-colors duration-200 break-all">
