@@ -206,6 +206,7 @@ export default function DashboardPage() {
       const from = (pageNum - 1) * ITEMS_PER_PAGE
       const to = from + ITEMS_PER_PAGE - 1
 
+      // First, let's try a simple query to see if we get any data at all
       const { data: storeCoas, error: coasError, count } = await supabase
         .from('store_documents')
         .select(`
@@ -220,7 +221,7 @@ export default function DashboardPage() {
           product_id,
           product:products(
             primary_category_id,
-            primary_category:categories!products_primary_category_id_fkey(
+            primary_category:categories(
               id,
               name,
               slug,
@@ -232,6 +233,8 @@ export default function DashboardPage() {
         .eq('is_active', true)
         .order('created_at', { ascending: false })
         .range(from, to)
+
+      console.log('📊 Query result:', { data: storeCoas, error: coasError, count })
 
       if (coasError) {
         console.error('❌ Error loading COAs:', coasError)
