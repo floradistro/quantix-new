@@ -12,7 +12,7 @@ export async function GET(
     const resolvedParams = await context.params
     let { storeId, productSlug } = resolvedParams
 
-    console.log(`[COA v5] Request for storeId: "${storeId}", productSlug: "${productSlug}"`)
+    console.log(`[COA v6] Request for storeId: "${storeId}", productSlug: "${productSlug}"`)
 
     // Create Supabase client inside function to ensure proper initialization
     const supabase = createClient(
@@ -30,12 +30,26 @@ export async function GET(
     const isUuid = /^[a-f0-9-]{36}$/i.test(storeId)
 
     if (!isUuid) {
-      console.log(`[COA v5] Looking up store by name/slug: "${storeId}"`)
+      console.log(`[COA v6] Looking up store by name/slug: "${storeId}"`)
 
       try {
+        // Legacy QR code mapping for stores whose legal names changed
+        const legacyNameMap: Record<string, string> = {
+          'Flora_Distribution_Group_LLC': 'Flora Distro',
+          'flora_distribution_group_llc': 'Flora Distro',
+          'Flora Distribution Group LLC': 'Flora Distro',
+        }
+
+        // Check if this is a known legacy name
+        let lookupName = storeId
+        if (legacyNameMap[storeId]) {
+          lookupName = legacyNameMap[storeId]
+          console.log(`[COA v6] Mapped legacy name "${storeId}" -> "${lookupName}"`)
+        }
+
         // Normalize the store identifier for matching
-        const normalizedIdentifier = storeId.replace(/_/g, ' ').toLowerCase()
-        console.log(`[COA v5] Normalized: "${normalizedIdentifier}"`)
+        const normalizedIdentifier = lookupName.replace(/_/g, ' ').toLowerCase()
+        console.log(`[COA v6] Normalized: "${normalizedIdentifier}"`)
 
         // Simple approach: get all stores and match (similar to middleware)
         const { data: stores, error: storesError } = await supabase
@@ -43,11 +57,11 @@ export async function GET(
           .select('id, store_name, slug')
 
         if (storesError) {
-          console.error('[COA v5] Supabase error:', storesError)
+          console.error('[COA v6] Supabase error:', storesError)
           throw storesError
         }
 
-        console.log(`[COA v5] Found ${stores?.length || 0} total stores`)
+        console.log(`[COA v6] Found ${stores?.length || 0} total stores`)
 
         if (stores && stores.length > 0) {
           // Find best match using same logic as middleware
@@ -56,14 +70,14 @@ export async function GET(
             const storeSlug = s.slug?.toLowerCase() || ''
 
             // Exact matches
-            if (storeName === normalizedIdentifier || storeSlug === storeId.toLowerCase()) {
-              console.log(`[COA v5] Exact match: ${s.store_name}`)
+            if (storeName === normalizedIdentifier || storeSlug === lookupName.toLowerCase()) {
+              console.log(`[COA v6] Exact match: ${s.store_name}`)
               return true
             }
 
             // Partial matches
             if (storeName && (normalizedIdentifier.includes(storeName) || storeName.includes(normalizedIdentifier))) {
-              console.log(`[COA v5] Partial match: ${s.store_name}`)
+              console.log(`[COA v6] Partial match: ${s.store_name}`)
               return true
             }
 
@@ -71,19 +85,19 @@ export async function GET(
           })
 
           if (store) {
-            console.log(`[COA v5] Resolved to: ${store.store_name} (${store.id})`)
+            console.log(`[COA v6] Resolved to: ${store.store_name} (${store.id})`)
             storeId = store.id
           } else {
-            console.log(`[COA v5] No match found`)
+            console.log(`[COA v6] No match found`)
             return NextResponse.json({ error: `Store not found: ${storeId}` }, { status: 404 })
           }
         } else {
-          console.log('[COA v5] No stores in database')
+          console.log('[COA v6] No stores in database')
           return NextResponse.json({ error: 'No stores available' }, { status: 404 })
         }
       } catch (lookupError: any) {
-        console.error('[COA v5] Store lookup error:', lookupError)
-        console.error('[COA v5] Error details:', JSON.stringify(lookupError))
+        console.error('[COA v6] Store lookup error:', lookupError)
+        console.error('[COA v6] Error details:', JSON.stringify(lookupError))
         return NextResponse.json({
           error: 'Store lookup failed',
           details: lookupError?.message

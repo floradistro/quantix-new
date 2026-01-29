@@ -51,8 +51,22 @@ export async function middleware(request: NextRequest) {
     if (!isUuid) {
       console.log('[Middleware] Non-UUID detected:', storeIdentifier)
       try {
+        // Legacy QR code mapping for stores whose legal names changed
+        const legacyNameMap: Record<string, string> = {
+          'Flora_Distribution_Group_LLC': 'Flora Distro',
+          'flora_distribution_group_llc': 'Flora Distro',
+          'Flora Distribution Group LLC': 'Flora Distro',
+        }
+
+        // Check if this is a known legacy name
+        let lookupName = storeIdentifier
+        if (legacyNameMap[storeIdentifier]) {
+          lookupName = legacyNameMap[storeIdentifier]
+          console.log('[Middleware] Mapped legacy name:', storeIdentifier, '->', lookupName)
+        }
+
         // Normalize the store identifier for matching
-        const normalizedIdentifier = storeIdentifier.replace(/_/g, ' ').toLowerCase()
+        const normalizedIdentifier = lookupName.replace(/_/g, ' ').toLowerCase()
         console.log('[Middleware] Normalized:', normalizedIdentifier)
 
         // Look up store by name or slug with flexible matching
