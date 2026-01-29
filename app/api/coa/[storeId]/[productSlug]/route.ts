@@ -35,30 +35,28 @@ export async function GET(
       let store = null
 
       // Try 1: Exact slug match (case-insensitive)
-      const { data: slugMatch } = await supabase
+      const { data: slugMatches } = await supabase
         .from('stores')
         .select('id, store_name, slug')
         .ilike('slug', storeId)
         .limit(1)
-        .single()
 
-      if (slugMatch) {
-        console.log(`[COA] Found via slug match: ${slugMatch.store_name}`)
-        store = slugMatch
+      if (slugMatches && slugMatches.length > 0) {
+        store = slugMatches[0]
+        console.log(`[COA] Found via slug match: ${store.store_name}`)
       }
 
       // Try 2: Exact store name match (case-insensitive)
       if (!store) {
-        const { data: nameMatch } = await supabase
+        const { data: nameMatches } = await supabase
           .from('stores')
           .select('id, store_name, slug')
           .ilike('store_name', normalizedIdentifier)
           .limit(1)
-          .single()
 
-        if (nameMatch) {
-          console.log(`[COA] Found via name match: ${nameMatch.store_name}`)
-          store = nameMatch
+        if (nameMatches && nameMatches.length > 0) {
+          store = nameMatches[0]
+          console.log(`[COA] Found via name match: ${store.store_name}`)
         }
       }
 
