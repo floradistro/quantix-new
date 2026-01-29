@@ -49,34 +49,56 @@ export async function GET(
     const normalizedSlug = productSlug.replace(/_/g, ' ').toLowerCase()
     const searchTerms = normalizedSlug.split(' ').filter(t => t.length > 2)
 
-    const match = data.find((doc: any) => {
-      // Try product match first
+    let bestMatch = null
+    let matchScore = 0
+
+    for (const doc of data) {
+      let score = 0
+
+      // Exact matches (highest priority)
       if (doc.products) {
         const product = doc.products
         const productSlugLower = product.slug?.toLowerCase()
         const productNameLower = product.name?.toLowerCase()
 
-        if (productSlugLower === productSlug.toLowerCase() ||
-            productNameLower === normalizedSlug ||
-            productNameLower?.includes(normalizedSlug) ||
-            searchTerms.every(term => productNameLower?.includes(term))) {
-          return true
+        if (productSlugLower === productSlug.toLowerCase()) {
+          score = 100 // Perfect slug match
+        } else if (productNameLower === normalizedSlug) {
+          score = 90 // Perfect name match
+        } else if (productNameLower?.includes(normalizedSlug)) {
+          score = 70 // Partial name match
+        } else if (searchTerms.length >= 2 && searchTerms.every(term => productNameLower?.includes(term))) {
+          score = 60 // All search terms match
         }
       }
 
       // Try document name match (for legacy COAs without product_id)
       const docNameLower = doc.document_name?.toLowerCase()
-      if (docNameLower === normalizedSlug ||
-          docNameLower?.includes(normalizedSlug) ||
-          searchTerms.every(term => docNameLower?.includes(term))) {
-        return true
+      if (score === 0) {
+        if (docNameLower === normalizedSlug) {
+          score = 85 // Perfect document name match
+        } else if (docNameLower?.includes(normalizedSlug)) {
+          score = 65 // Partial document name match
+        } else if (searchTerms.length >= 2 && searchTerms.every(term => docNameLower?.includes(term))) {
+          score = 55 // All search terms in document name
+        }
       }
 
-      return false
-    })
+      if (score > matchScore) {
+        matchScore = score
+        bestMatch = doc
+      }
+    }
 
-    // Fallback: return first document for backward compatibility
-    const coa = match || data[0]
+    // Only use fallback if we have a reasonable match (score > 50)
+    // OR if the productSlug looks like a legacy document ID (UUID format)
+    const isLegacyId = /^[a-f0-9-]{36}$/.test(productSlug)
+
+    if (!bestMatch || (matchScore < 50 && !isLegacyId)) {
+      return NextResponse.json({ error: 'Certificate not found' }, { status: 404 })
+    }
+
+    const coa = bestMatch
 
     return NextResponse.json({ data: coa })
   } catch (error: any) {
