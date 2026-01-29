@@ -41,7 +41,7 @@ function PDFPreview({ pdfUrl, title }: { pdfUrl: string; title: string }) {
       </div>
       {isVisible && (
         <iframe
-          src={`${pdfUrl}#view=FitH&toolbar=0&navpanes=0&scrollbar=0&page=1`}
+          src={`/api/pdf-proxy?url=${encodeURIComponent(pdfUrl)}#view=FitH&toolbar=0&navpanes=0&scrollbar=0&page=1`}
           className="w-full h-full absolute inset-0"
           style={{
             filter: 'brightness(0.95)',
