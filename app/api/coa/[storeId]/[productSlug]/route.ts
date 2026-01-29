@@ -90,15 +90,27 @@ export async function GET(
       }
     }
 
-    // Only use fallback if we have a reasonable match (score > 50)
+    console.log(`[COA Matching] Product slug: "${productSlug}"`)
+    console.log(`[COA Matching] Best match score: ${matchScore}`)
+    console.log(`[COA Matching] Best match: ${bestMatch?.document_name || 'none'}`)
+    console.log(`[COA Matching] Total documents searched: ${data.length}`)
+
+    // Only return a match if we have a good score (> 50)
     // OR if the productSlug looks like a legacy document ID (UUID format)
     const isLegacyId = /^[a-f0-9-]{36}$/.test(productSlug)
 
-    if (!bestMatch || (matchScore < 50 && !isLegacyId)) {
+    if (!bestMatch || matchScore === 0) {
+      console.log(`[COA Matching] No match found (score: ${matchScore})`)
+      return NextResponse.json({ error: 'Certificate not found' }, { status: 404 })
+    }
+
+    if (matchScore < 50 && !isLegacyId) {
+      console.log(`[COA Matching] Match score too low: ${matchScore}`)
       return NextResponse.json({ error: 'Certificate not found' }, { status: 404 })
     }
 
     const coa = bestMatch
+    console.log(`[COA Matching] Returning: ${coa.document_name} (score: ${matchScore})`)
 
     return NextResponse.json({ data: coa })
   } catch (error: any) {
