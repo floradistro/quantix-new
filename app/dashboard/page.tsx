@@ -25,7 +25,7 @@ function PDFPreview({ pdfUrl, title }: { pdfUrl: string; title: string }) {
         })
       },
       {
-        rootMargin: '300px', // Start loading even earlier for better UX
+        rootMargin: '300px',
         threshold: 0.01
       }
     )
@@ -35,22 +35,22 @@ function PDFPreview({ pdfUrl, title }: { pdfUrl: string; title: string }) {
   }, [])
 
   return (
-    <div ref={containerRef} className="w-full h-full relative bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Loading placeholder */}
-      <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${isLoaded ? 'opacity-0' : 'opacity-100'}`}>
-        <FileText className={`w-12 h-12 text-gray-300 ${isVisible && !isLoaded ? 'animate-pulse' : ''}`} />
-      </div>
+    <div ref={containerRef} className="w-full h-full relative overflow-hidden bg-white">
+      {!isLoaded && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+          <FileText className={`w-12 h-12 text-gray-300 ${isVisible && !isLoaded ? 'animate-pulse' : ''}`} />
+        </div>
+      )}
       {isVisible && (
         <iframe
-          src={`/api/pdf-proxy?url=${encodeURIComponent(pdfUrl)}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitV`}
-          className="w-full h-full absolute inset-0"
+          src={`/api/pdf-proxy?url=${encodeURIComponent(pdfUrl)}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=Fit&zoom=100`}
+          className="w-full h-full"
           title={`PDF preview: ${title}`}
           loading="lazy"
           style={{
-            filter: 'brightness(0.95)',
             pointerEvents: 'none',
-            opacity: isLoaded ? 1 : 0,
-            transition: 'opacity 0.5s ease-in-out'
+            transform: 'scale(1.02)',
+            transformOrigin: 'center center'
           }}
           onLoad={() => setIsLoaded(true)}
         />
