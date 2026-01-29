@@ -299,7 +299,6 @@ export default function COAPreviewPage() {
                   </div>
                 </div>
               )}
-              </div>
             </div>
 
             {/* Test Results Summary - Only show if we have results */}
