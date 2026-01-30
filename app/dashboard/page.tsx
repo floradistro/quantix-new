@@ -246,7 +246,7 @@ export default function DashboardPage() {
       // Get all COAs for this store to count by matrix type
       const { data: allCoas, error: coasError } = await supabase
         .from('store_documents')
-        .select('id, metadata, document_name')
+        .select('id, metadata, document_name, data')
         .eq('store_id', storeId)
         .eq('is_active', true)
 
@@ -260,8 +260,8 @@ export default function DashboardPage() {
 
         let count = 0
         allCoas?.forEach((coa: any) => {
-          // Get matrix/sample_type from COA metadata
-          const coaMatrix = coa.metadata?.sample_type || coa.metadata?.matrix || ''
+          // Get sampleType/matrix from COA data column (parsed COA data)
+          const coaMatrix = coa.data?.sampleType || coa.data?.matrix || ''
 
           // Check if COA matrix matches any of the category's matrix types
           const matchesMatrix = matrixTypes.some((mt: string) =>
@@ -323,6 +323,7 @@ export default function DashboardPage() {
           created_at,
           store_id,
           metadata,
+          data,
           document_type,
           thumbnail_url,
           product_id,
@@ -338,12 +339,12 @@ export default function DashboardPage() {
         return
       }
 
-      // Filter by category if selected (based on COA matrix metadata)
+      // Filter by category if selected (based on COA data.sampleType)
       let filteredCoas = allCoas || []
 
       if (categoryId && categoryId !== 'all' && matrixTypes.length > 0) {
         filteredCoas = filteredCoas.filter((coa: any) => {
-          const coaMatrix = coa.metadata?.sample_type || coa.metadata?.matrix || ''
+          const coaMatrix = coa.data?.sampleType || coa.data?.matrix || ''
 
           return matrixTypes.some((mt: string) =>
             coaMatrix.toLowerCase() === mt.toLowerCase() ||
