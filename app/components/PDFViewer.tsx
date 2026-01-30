@@ -62,9 +62,9 @@ export default function PDFViewer({ url, className = '' }: PDFViewerProps) {
           const scale = containerWidth / viewport.width
           const scaledViewport = page.getViewport({ scale })
 
-          // Create canvas for this page - full width, no gaps
+          // Create canvas for this page - full width with slight gap between pages
           const canvas = document.createElement('canvas')
-          canvas.className = 'block w-full'
+          canvas.className = 'block w-full mb-2'
           canvas.width = scaledViewport.width * 2 // 2x for retina
           canvas.height = scaledViewport.height * 2
           canvas.style.width = `${scaledViewport.width}px`
