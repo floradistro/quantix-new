@@ -514,23 +514,33 @@ export default function COAPreviewPage() {
               </div>
             </section>
 
-            {/* PDF Viewer */}
+            {/* PDF Viewer - Full width, scrollable for multi-page */}
             <section className="glass-effect rounded-none sm:rounded-2xl overflow-hidden">
               <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-white/10">
                 <h2 className="text-base sm:text-lg font-semibold text-white">Document</h2>
-                <button
-                  onClick={() => setIsFullscreen(true)}
-                  className="min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2 hover:bg-white/[0.08] active:bg-white/[0.12] rounded-full text-white/60 hover:text-white transition-colors"
-                >
-                  <Maximize2 className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => coa.file_url && window.open(coa.file_url, '_blank')}
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-white/[0.08] active:bg-white/[0.12] rounded-full text-white/60 hover:text-white transition-colors sm:hidden"
+                  >
+                    <Download className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => setIsFullscreen(true)}
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2 hover:bg-white/[0.08] active:bg-white/[0.12] rounded-full text-white/60 hover:text-white transition-colors"
+                  >
+                    <Maximize2 className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
-              <div className={`bg-neutral-100 ${hasData ? 'h-[55vh] sm:h-[50vh]' : 'h-[70vh]'}`}>
+              {/* PDF embed with proper aspect ratio for letter-size pages */}
+              <div className="relative w-full bg-neutral-200" style={{ aspectRatio: '8.5/11', maxHeight: '85vh' }}>
                 <iframe
-                  src={`/api/pdf-proxy?url=${encodeURIComponent(coa.file_url)}`}
-                  className="w-full h-full"
+                  src={`/api/pdf-proxy?url=${encodeURIComponent(coa.file_url)}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`}
+                  className="absolute inset-0 w-full h-full"
                   title="Certificate PDF"
                   style={{ border: 'none' }}
+                  allow="fullscreen"
                 />
               </div>
             </section>
