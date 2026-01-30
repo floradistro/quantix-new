@@ -499,7 +499,7 @@ export default function DashboardPage() {
                     loadCOAsForStore(newStoreId, 1)
                   }
                 }}
-                className="bg-white/5 border border-white/10 rounded-lg pl-2.5 pr-7 py-1.5 text-xs sm:text-sm text-white appearance-none cursor-pointer focus:outline-none focus:border-[#0071e3]/50 transition-colors"
+                className="bg-white/5 border border-white/10 rounded-lg pl-2.5 pr-7 py-1.5 text-base sm:text-sm text-white appearance-none cursor-pointer focus:outline-none focus:border-[#0071e3]/50 transition-colors"
               >
                 {stores.map(store => (
                   <option key={store.id} value={store.id}>
@@ -630,7 +630,7 @@ export default function DashboardPage() {
                   placeholder="Search..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg pl-8 pr-2 py-1.5 text-xs sm:text-sm text-white placeholder-white/40 focus:outline-none focus:border-[#0071e3]/50 transition-colors"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg pl-8 pr-2 py-1.5 text-base sm:text-sm text-white placeholder-white/40 focus:outline-none focus:border-[#0071e3]/50 transition-colors"
                 />
               </div>
 
@@ -640,7 +640,7 @@ export default function DashboardPage() {
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="bg-white/5 border border-white/10 rounded-lg pl-7 pr-8 py-1.5 text-xs sm:text-sm text-white appearance-none cursor-pointer focus:outline-none focus:border-[#0071e3]/50 transition-colors"
+                  className="bg-white/5 border border-white/10 rounded-lg pl-7 pr-8 py-1.5 text-base sm:text-sm text-white appearance-none cursor-pointer focus:outline-none focus:border-[#0071e3]/50 transition-colors"
                 >
                   <option value="all">All Tests</option>
                   <option value="cannabis">Cannabis</option>

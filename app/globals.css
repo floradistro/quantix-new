@@ -144,6 +144,30 @@ html {
   scroll-padding-top: 72px;
 }
 
+/* Mobile-specific styles to prevent zoom on input focus */
+@media screen and (max-width: 768px) {
+  /* Prevent iOS zoom on input focus - requires 16px minimum font size */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="number"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Better touch targets for mobile */
+  button,
+  a,
+  input,
+  select {
+    touch-action: manipulation;
+  }
+}
+
 /* Selection color */
 ::selection {
   background: rgba(16, 185, 129, 0.3);
