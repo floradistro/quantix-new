@@ -92,12 +92,25 @@ interface Store {
   slug: string
 }
 
+interface Category {
+  id: string
+  name: string
+  slug: string
+  icon?: string
+  display_order: number
+  metadata?: {
+    matrix_types?: string[]
+    category_keywords?: string[]
+  }
+}
+
 export default function DashboardPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const [stores, setStores] = useState<Store[]>([])
   const [selectedStore, setSelectedStore] = useState<string>('all')
+  const [storeCategories, setStoreCategories] = useState<Category[]>([])
   const [coas, setCoas] = useState<COA[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
@@ -123,38 +136,16 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user && selectedStore && selectedStore !== 'all') {
       setPage(1)
-      loadCOAsForStore(selectedStore, 1)
+      loadCategoriesForStore(selectedStore)
     }
   }, [selectedStore, user])
 
-  // Auto-select first category if only one exists and no category selected
+  // When category is selected, load COAs for that category
   useEffect(() => {
-    if (coas.length > 0 && !selectedCategory) {
-      // Compute categories
-      const categoryMap = new Map<string, any>()
-      coas.forEach(coa => {
-        const category = (coa.product as any)?.primary_category
-        if (category) {
-          const existing = categoryMap.get(category.id) || { ...category, count: 0 }
-          existing.count++
-          categoryMap.set(category.id, existing)
-        }
-      })
-
-      const computedCategories = Array.from(categoryMap.values())
-
-      // If no categories found, auto-select 'all'
-      if (computedCategories.length === 0) {
-        console.log('🚀 Auto-selecting "all" category')
-        setSelectedCategory('all')
-      }
-      // If only one category, auto-select it
-      else if (computedCategories.length === 1) {
-        console.log('🚀 Auto-selecting single category:', computedCategories[0].id)
-        setSelectedCategory(computedCategories[0].id)
-      }
+    if (selectedCategory && selectedStore && selectedStore !== 'all') {
+      loadCOAsForStore(selectedStore, 1, selectedCategory)
     }
-  }, [coas, selectedCategory])
+  }, [selectedCategory])
 
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession()
@@ -233,7 +224,57 @@ export default function DashboardPage() {
     }
   }
 
-  const loadCOAsForStore = async (storeId: string, pageNum: number = 1) => {
+  const loadCategoriesForStore = async (storeId: string) => {
+    try {
+      console.log('📂 Loading categories for store:', storeId)
+
+      const { data: categories, error } = await supabase
+        .from('categories')
+        .select('id, name, slug, icon, display_order, metadata')
+        .eq('store_id', storeId)
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+
+      if (error) {
+        console.error('❌ Error loading categories:', error)
+        return
+      }
+
+      console.log('📂 Loaded categories:', categories?.length || 0)
+
+      // Get COA counts per category
+      const { data: coaCounts } = await supabase
+        .from('store_documents')
+        .select('product_id, products!inner(primary_category_id)')
+        .eq('store_id', storeId)
+        .eq('is_active', true)
+
+      // Count COAs per category
+      const countMap = new Map<string, number>()
+      coaCounts?.forEach((doc: any) => {
+        const catId = doc.products?.primary_category_id
+        if (catId) {
+          countMap.set(catId, (countMap.get(catId) || 0) + 1)
+        }
+      })
+
+      // Add counts to categories and filter out empty ones
+      const categoriesWithCounts = (categories || [])
+        .map(cat => ({
+          ...cat,
+          count: countMap.get(cat.id) || 0
+        }))
+        .filter(cat => cat.count > 0)
+
+      setStoreCategories(categoriesWithCounts as any)
+      setSelectedCategory(null)
+      setCoas([])
+    } catch (err) {
+      console.error('❌ Error loading categories:', err)
+    }
+  }
+
+  const loadCOAsForStore = async (storeId: string, pageNum: number = 1, categoryId?: string | null) => {
     try {
       console.log('🔍 Loading COAs for store:', storeId, 'page:', pageNum)
       setIsLoadingMore(true)
@@ -242,7 +283,7 @@ export default function DashboardPage() {
       const to = from + ITEMS_PER_PAGE - 1
 
       // Query with product information for SEO-friendly URLs
-      const { data: storeCoas, error: coasError, count } = await supabase
+      let query = supabase
         .from('store_documents')
         .select(`
           id,
@@ -254,10 +295,17 @@ export default function DashboardPage() {
           document_type,
           thumbnail_url,
           product_id,
-          products(id, name, slug, primary_category_id)
+          products!inner(id, name, slug, primary_category_id)
         `, { count: 'exact' })
         .eq('store_id', storeId)
         .eq('is_active', true)
+
+      // Filter by category if selected
+      if (categoryId && categoryId !== 'all') {
+        query = query.eq('products.primary_category_id', categoryId)
+      }
+
+      const { data: storeCoas, error: coasError, count } = await query
         .order('created_at', { ascending: false })
         .range(from, to)
 
@@ -419,46 +467,17 @@ export default function DashboardPage() {
     window.URL.revokeObjectURL(url)
   }
 
-  // Get categories from actual database categories (not guessed from names)
-  const categoryMap = new Map<string, {id: string, name: string, slug: string, icon: string, count: number}>()
+  // Use store categories loaded from database
+  const categories = storeCategories as any[]
 
-  coas.forEach(coa => {
-    const category = (coa.product as any)?.primary_category
-    if (category && (selectedStore === 'all' || coa.store_id === selectedStore)) {
-      const existing = categoryMap.get(category.id) || { ...category, count: 0 }
-      existing.count++
-      categoryMap.set(category.id, existing)
-    }
-  })
-
-  console.log('📊 Category map:', categoryMap)
-  console.log('📊 Total COAs:', coas.length)
-
-  // If no categories, create a default "All Documents" category
-  let categories = Array.from(categoryMap.values()).sort((a, b) => b.count - a.count)
-
-  if (categories.length === 0 && coas.length > 0) {
-    categories = [{
-      id: 'all',
-      name: 'All Documents',
-      slug: 'all',
-      icon: '📄',
-      count: coas.length
-    }]
-    console.log('⚠️ No categories found, using default "All Documents"')
-  }
-
+  // Filter COAs by search and test type (category filtering is done at query level)
   const filteredCOAs = coas.filter(coa => {
-    const category = (coa.product as any)?.primary_category
-    const matchesCategory = !selectedCategory || selectedCategory === 'all' || category?.id === selectedCategory
-
     const matchesSearch = coa.document_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          coa.metadata?.sample_id?.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesFilter = filterType === 'all' || coa.metadata?.test_type === filterType
 
-    // No need to filter by store since we're only loading one store's COAs
-    return matchesCategory && matchesSearch && matchesFilter
+    return matchesSearch && matchesFilter
   })
 
   if (loading) {
@@ -751,7 +770,7 @@ export default function DashboardPage() {
                   onClick={() => {
                     const nextPage = page + 1
                     setPage(nextPage)
-                    loadCOAsForStore(selectedStore, nextPage)
+                    loadCOAsForStore(selectedStore, nextPage, selectedCategory)
                   }}
                   disabled={isLoadingMore}
                   className="px-6 py-2 bg-white/10 hover:bg-[#0071e3] border border-white/20 hover:border-[#0071e3] rounded-lg text-white text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
