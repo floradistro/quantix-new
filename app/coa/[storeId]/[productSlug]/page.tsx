@@ -554,7 +554,7 @@ export default function COAPreviewPage() {
               </div>
               <div className="relative w-full bg-neutral-200" style={{ height: '70vh', minHeight: '500px' }}>
                 <iframe
-                  src={`/api/pdf-proxy?url=${encodeURIComponent(coa.file_url)}#toolbar=0&navpanes=0&scrollbar=1&view=FitW`}
+                  src={`/api/pdf-proxy?url=${encodeURIComponent(coa.file_url)}#toolbar=1&navpanes=1&scrollbar=1&view=FitW`}
                   className="absolute inset-0 w-full h-full"
                   title="Certificate PDF"
                   style={{ border: 'none' }}
