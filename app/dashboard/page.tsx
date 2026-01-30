@@ -92,16 +92,9 @@ interface Store {
   slug: string
 }
 
-interface Category {
-  id: string
-  name: string
-  slug: string
-  icon?: string
-  display_order: number
-  metadata?: {
-    matrix_types?: string[]
-    category_keywords?: string[]
-  }
+interface MatrixCategory {
+  sampleType: string
+  count: number
 }
 
 export default function DashboardPage() {
@@ -110,7 +103,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [stores, setStores] = useState<Store[]>([])
   const [selectedStore, setSelectedStore] = useState<string>('all')
-  const [storeCategories, setStoreCategories] = useState<Category[]>([])
+  const [matrixCategories, setMatrixCategories] = useState<MatrixCategory[]>([])
   const [coas, setCoas] = useState<COA[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
@@ -136,7 +129,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user && selectedStore && selectedStore !== 'all') {
       setPage(1)
-      loadCategoriesForStore(selectedStore)
+      loadMatrixTypesForStore(selectedStore)
     }
   }, [selectedStore, user])
 
@@ -224,94 +217,59 @@ export default function DashboardPage() {
     }
   }
 
-  const loadCategoriesForStore = async (storeId: string) => {
+  const loadMatrixTypesForStore = async (storeId: string) => {
     try {
-      console.log('📂 Loading categories for store:', storeId)
+      console.log('📂 Loading matrix types for store:', storeId)
 
-      // Get store's categories (matrix types)
-      const { data: categories, error } = await supabase
-        .from('categories')
-        .select('id, name, slug, icon, display_order, metadata')
-        .eq('store_id', storeId)
-        .eq('is_active', true)
-        .order('display_order', { ascending: true })
-
-      if (error) {
-        console.error('❌ Error loading categories:', error)
-        return
-      }
-
-      console.log('📂 Loaded categories:', categories?.length || 0)
-
-      // Get all COAs for this store to count by matrix type
+      // Get all COAs for this store
       const { data: allCoas, error: coasError } = await supabase
         .from('store_documents')
-        .select('id, metadata, document_name, data')
+        .select('id, data')
         .eq('store_id', storeId)
         .eq('is_active', true)
 
       if (coasError) {
-        console.error('❌ Error loading COAs for count:', coasError)
+        console.error('❌ Error loading COAs:', coasError)
+        return
       }
 
-      // Match COAs to categories based on matrix_types in category metadata
-      const categoriesWithCounts = (categories || []).map(cat => {
-        const matrixTypes = (cat.metadata as any)?.matrix_types || []
+      // Extract unique sampleTypes from COA data and count them
+      const sampleTypeCounts: Record<string, number> = {}
 
-        let count = 0
-        allCoas?.forEach((coa: any) => {
-          // Get sampleType/matrix from COA data column (parsed COA data)
-          const coaMatrix = coa.data?.sampleType || coa.data?.matrix || ''
+      allCoas?.forEach((coa: any) => {
+        const sampleType = coa.data?.sampleType
+        if (sampleType) {
+          sampleTypeCounts[sampleType] = (sampleTypeCounts[sampleType] || 0) + 1
+        }
+      })
 
-          // Check if COA matrix matches any of the category's matrix types
-          const matchesMatrix = matrixTypes.some((mt: string) =>
-            coaMatrix.toLowerCase() === mt.toLowerCase() ||
-            coaMatrix.toLowerCase().includes(mt.toLowerCase())
-          )
+      // Convert to array and sort by count (descending)
+      const matrixTypes: MatrixCategory[] = Object.entries(sampleTypeCounts)
+        .map(([sampleType, count]) => ({ sampleType, count }))
+        .sort((a, b) => b.count - a.count)
 
-          if (matchesMatrix) {
-            count++
-          }
-        })
+      console.log('📂 Found matrix types:', matrixTypes)
 
-        return { ...cat, count }
-      }).filter(cat => cat.count > 0)
-
-      // If no categories matched, show "All Documents" as fallback
-      if (categoriesWithCounts.length === 0 && (allCoas?.length || 0) > 0) {
-        categoriesWithCounts.push({
-          id: 'all',
-          name: 'All Documents',
-          slug: 'all',
-          icon: '📄',
-          display_order: 0,
-          metadata: {},
+      // If no matrix types found but we have COAs, add "All Documents"
+      if (matrixTypes.length === 0 && (allCoas?.length || 0) > 0) {
+        matrixTypes.push({
+          sampleType: 'All Documents',
           count: allCoas?.length || 0
-        } as any)
+        })
       }
 
-      setStoreCategories(categoriesWithCounts as any)
+      setMatrixCategories(matrixTypes)
       setSelectedCategory(null)
       setCoas([])
     } catch (err) {
-      console.error('❌ Error loading categories:', err)
+      console.error('❌ Error loading matrix types:', err)
     }
   }
 
-  const loadCOAsForStore = async (storeId: string, pageNum: number = 1, categoryId?: string | null) => {
+  const loadCOAsForStore = async (storeId: string, pageNum: number = 1, sampleTypeFilter?: string | null) => {
     try {
-      console.log('🔍 Loading COAs for store:', storeId, 'page:', pageNum, 'category:', categoryId)
+      console.log('🔍 Loading COAs for store:', storeId, 'page:', pageNum, 'sampleType:', sampleTypeFilter)
       setIsLoadingMore(true)
-
-      // Get category metadata for filtering
-      let matrixTypes: string[] = []
-
-      if (categoryId && categoryId !== 'all') {
-        const selectedCat = storeCategories.find(c => c.id === categoryId)
-        if (selectedCat?.metadata) {
-          matrixTypes = (selectedCat.metadata as any).matrix_types || []
-        }
-      }
 
       // Query all COAs for the store
       const { data: allCoas, error: coasError } = await supabase
@@ -339,17 +297,13 @@ export default function DashboardPage() {
         return
       }
 
-      // Filter by category if selected (based on COA data.sampleType)
+      // Filter by sampleType if selected
       let filteredCoas = allCoas || []
 
-      if (categoryId && categoryId !== 'all' && matrixTypes.length > 0) {
+      if (sampleTypeFilter && sampleTypeFilter !== 'All Documents') {
         filteredCoas = filteredCoas.filter((coa: any) => {
-          const coaMatrix = coa.data?.sampleType || coa.data?.matrix || ''
-
-          return matrixTypes.some((mt: string) =>
-            coaMatrix.toLowerCase() === mt.toLowerCase() ||
-            coaMatrix.toLowerCase().includes(mt.toLowerCase())
-          )
+          const coaSampleType = coa.data?.sampleType || ''
+          return coaSampleType === sampleTypeFilter
         })
       }
 
@@ -508,8 +462,8 @@ export default function DashboardPage() {
     window.URL.revokeObjectURL(url)
   }
 
-  // Use store categories loaded from database
-  const categories = storeCategories as any[]
+  // Use matrix types extracted from COA data
+  const categories = matrixCategories
 
   // Filter COAs by search and test type (category filtering is done at query level)
   const filteredCOAs = coas.filter(coa => {
@@ -587,18 +541,18 @@ export default function DashboardPage() {
           <div className="flex items-center justify-center mb-6">
             <Logo size="lg" showText={false} />
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 text-center">Select Product Category</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 text-center">Select Matrix Type</h2>
           <div className="max-w-2xl mx-auto space-y-2">
             {categories.map((category) => (
               <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
+                key={category.sampleType}
+                onClick={() => setSelectedCategory(category.sampleType)}
                 className="group w-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#0071e3]/50 rounded-lg p-3 sm:p-4 transition-all duration-200 hover:translate-x-1 flex items-center justify-between"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-1.5 h-1.5 rounded-full bg-[#0071e3] group-hover:scale-125 transition-transform"></div>
                   <h3 className="text-white font-medium text-sm sm:text-base group-hover:text-[#0071e3] transition-colors">
-                    {category.name}
+                    {category.sampleType}
                   </h3>
                 </div>
                 <div className="flex items-center gap-2 sm:gap-3">
@@ -673,7 +627,7 @@ export default function DashboardPage() {
               {/* Category Title */}
               <div className="flex items-center gap-2">
                 <h2 className="text-sm sm:text-base font-semibold text-white">
-                  {categories.find(c => c.id === selectedCategory)?.name || 'Products'}
+                  {selectedCategory || 'Products'}
                 </h2>
                 <span className="text-[10px] sm:text-xs text-white/50">
                   {filteredCOAs.length}
