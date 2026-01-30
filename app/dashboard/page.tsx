@@ -228,6 +228,7 @@ export default function DashboardPage() {
     try {
       console.log('📂 Loading categories for store:', storeId)
 
+      // Get store's categories (matrix types)
       const { data: categories, error } = await supabase
         .from('categories')
         .select('id, name, slug, icon, display_order, metadata')
@@ -242,29 +243,57 @@ export default function DashboardPage() {
 
       console.log('📂 Loaded categories:', categories?.length || 0)
 
-      // Get COA counts per category
-      const { data: coaCounts } = await supabase
+      // Get all COAs for this store to count by matrix type
+      const { data: allCoas, error: coasError } = await supabase
         .from('store_documents')
-        .select('product_id, products!inner(primary_category_id)')
+        .select('id, metadata, document_name')
         .eq('store_id', storeId)
         .eq('is_active', true)
 
-      // Count COAs per category
-      const countMap = new Map<string, number>()
-      coaCounts?.forEach((doc: any) => {
-        const catId = doc.products?.primary_category_id
-        if (catId) {
-          countMap.set(catId, (countMap.get(catId) || 0) + 1)
-        }
-      })
+      if (coasError) {
+        console.error('❌ Error loading COAs for count:', coasError)
+      }
 
-      // Add counts to categories and filter out empty ones
-      const categoriesWithCounts = (categories || [])
-        .map(cat => ({
-          ...cat,
-          count: countMap.get(cat.id) || 0
-        }))
-        .filter(cat => cat.count > 0)
+      // Match COAs to categories based on matrix_types in category metadata
+      const categoriesWithCounts = (categories || []).map(cat => {
+        const matrixTypes = (cat.metadata as any)?.matrix_types || []
+        const keywords = (cat.metadata as any)?.category_keywords || []
+
+        let count = 0
+        allCoas?.forEach((coa: any) => {
+          const sampleType = coa.metadata?.sample_type || coa.metadata?.sampleType || ''
+          const docName = coa.document_name?.toLowerCase() || ''
+
+          // Check matrix type match
+          const matchesMatrix = matrixTypes.some((mt: string) =>
+            sampleType.toLowerCase().includes(mt.toLowerCase())
+          )
+
+          // Check keyword match in document name
+          const matchesKeyword = keywords.some((kw: string) =>
+            docName.includes(kw.toLowerCase())
+          )
+
+          if (matchesMatrix || matchesKeyword) {
+            count++
+          }
+        })
+
+        return { ...cat, count }
+      }).filter(cat => cat.count > 0)
+
+      // If no categories matched, show "All Documents" as fallback
+      if (categoriesWithCounts.length === 0 && (allCoas?.length || 0) > 0) {
+        categoriesWithCounts.push({
+          id: 'all',
+          name: 'All Documents',
+          slug: 'all',
+          icon: '📄',
+          display_order: 0,
+          metadata: {},
+          count: allCoas?.length || 0
+        } as any)
+      }
 
       setStoreCategories(categoriesWithCounts as any)
       setSelectedCategory(null)
@@ -276,14 +305,23 @@ export default function DashboardPage() {
 
   const loadCOAsForStore = async (storeId: string, pageNum: number = 1, categoryId?: string | null) => {
     try {
-      console.log('🔍 Loading COAs for store:', storeId, 'page:', pageNum)
+      console.log('🔍 Loading COAs for store:', storeId, 'page:', pageNum, 'category:', categoryId)
       setIsLoadingMore(true)
 
-      const from = (pageNum - 1) * ITEMS_PER_PAGE
-      const to = from + ITEMS_PER_PAGE - 1
+      // Get category metadata for filtering
+      let matrixTypes: string[] = []
+      let keywords: string[] = []
 
-      // Query with product information for SEO-friendly URLs
-      let query = supabase
+      if (categoryId && categoryId !== 'all') {
+        const selectedCat = storeCategories.find(c => c.id === categoryId)
+        if (selectedCat?.metadata) {
+          matrixTypes = (selectedCat.metadata as any).matrix_types || []
+          keywords = (selectedCat.metadata as any).category_keywords || []
+        }
+      }
+
+      // Query all COAs for the store
+      const { data: allCoas, error: coasError } = await supabase
         .from('store_documents')
         .select(`
           id,
@@ -295,22 +333,11 @@ export default function DashboardPage() {
           document_type,
           thumbnail_url,
           product_id,
-          products!inner(id, name, slug, primary_category_id)
-        `, { count: 'exact' })
+          products(id, name, slug, primary_category_id)
+        `)
         .eq('store_id', storeId)
         .eq('is_active', true)
-
-      // Filter by category if selected
-      if (categoryId && categoryId !== 'all') {
-        query = query.eq('products.primary_category_id', categoryId)
-      }
-
-      const { data: storeCoas, error: coasError, count } = await query
         .order('created_at', { ascending: false })
-        .range(from, to)
-
-      console.log('📊 Query result:', { data: storeCoas, error: coasError, count })
-      console.log('📊 First COA:', storeCoas?.[0])
 
       if (coasError) {
         console.error('❌ Error loading COAs:', coasError)
@@ -318,15 +345,41 @@ export default function DashboardPage() {
         return
       }
 
-      console.log('📄 Loaded', storeCoas?.length || 0, 'COAs for store (total:', count, ')')
+      // Filter by category if selected (based on matrix type or keywords)
+      let filteredCoas = allCoas || []
 
-      if (pageNum === 1) {
-        setCoas((storeCoas as any) || [])
-      } else {
-        setCoas(prev => [...prev, ...((storeCoas as any) || [])])
+      if (categoryId && categoryId !== 'all' && (matrixTypes.length > 0 || keywords.length > 0)) {
+        filteredCoas = filteredCoas.filter((coa: any) => {
+          const sampleType = coa.metadata?.sample_type || coa.metadata?.sampleType || ''
+          const docName = coa.document_name?.toLowerCase() || ''
+
+          const matchesMatrix = matrixTypes.some((mt: string) =>
+            sampleType.toLowerCase().includes(mt.toLowerCase())
+          )
+
+          const matchesKeyword = keywords.some((kw: string) =>
+            docName.includes(kw.toLowerCase())
+          )
+
+          return matchesMatrix || matchesKeyword
+        })
       }
 
-      setHasMore((count || 0) > pageNum * ITEMS_PER_PAGE)
+      // Paginate
+      const from = (pageNum - 1) * ITEMS_PER_PAGE
+      const to = from + ITEMS_PER_PAGE
+      const paginatedCoas = filteredCoas.slice(from, to)
+      const count = filteredCoas.length
+
+      console.log('📄 Loaded', paginatedCoas.length, 'COAs for page (total:', count, ')')
+
+      if (pageNum === 1) {
+        setCoas(paginatedCoas as any)
+      } else {
+        setCoas(prev => [...prev, ...(paginatedCoas as any)])
+      }
+
+      setHasMore(count > pageNum * ITEMS_PER_PAGE)
       setIsLoadingMore(false)
     } catch (err) {
       console.error('❌ Error loading COAs:', err)
