@@ -6,10 +6,12 @@ import Link from 'next/link'
 import {
   FileText, Download, Share2, Calendar, Building2, Check,
   Maximize2, FlaskConical, Leaf, Droplets, Shield,
-  BadgeCheck, Hash, Beaker, X, TestTube, Dna, ChevronRight
+  BadgeCheck, Hash, Beaker, X, TestTube, Dna, ChevronRight,
+  ExternalLink, ShieldCheck
 } from 'lucide-react'
 import Logo from '@/app/components/Logo'
 import PDFViewer from '@/app/components/PDFViewer'
+import { QRCodeSVG } from 'qrcode.react'
 import {
   PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
   Tooltip
@@ -279,25 +281,26 @@ export default function COAPreviewPage() {
 
         {/* Desktop: Hero section with key stats */}
         {hasData && topCannabinoids.length > 0 && (
-          <div className="hidden lg:block mb-8">
+          <div className="hidden lg:block mb-8 animate-in fade-in duration-500">
             <div className="glass-effect rounded-2xl p-8">
               <div className="flex items-center justify-between">
                 {/* Left: Product info */}
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    {coa.metadata?.status && (
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        coa.metadata.status.toLowerCase() === 'pass'
-                          ? 'bg-emerald-500/15 text-emerald-400'
-                          : 'bg-red-500/15 text-red-400'
-                      }`}>
-                        {coa.metadata.status}
-                      </span>
-                    )}
                     <span className="text-sm text-white/40">{coa.metadata?.sample_type || coa.metadata?.test_type}</span>
                   </div>
                   <h2 className="text-2xl font-semibold text-white mb-1">{productName}</h2>
-                  <p className="text-white/50">{coa.metadata?.lab_name} · {formatDate(coa.metadata?.date_reported || coa.metadata?.issue_date || coa.created_at)}</p>
+                  <div className="flex items-center gap-3 text-white/50">
+                    {coa.metadata?.lab_name && (
+                      <LabBadge
+                        name={coa.metadata.lab_name}
+                        website={coa.metadata?.lab_website}
+                        status={coa.metadata?.status}
+                      />
+                    )}
+                    <span>·</span>
+                    <span>{formatDate(coa.metadata?.date_reported || coa.metadata?.issue_date || coa.created_at)}</span>
+                  </div>
                 </div>
 
                 {/* Right: Key cannabinoid stats */}
@@ -325,18 +328,9 @@ export default function COAPreviewPage() {
 
             {/* Mobile only: Potency hero */}
             {hasData && topCannabinoids.length > 0 && (
-              <section className="lg:hidden glass-effect rounded-none sm:rounded-2xl p-4 sm:p-6">
+              <section className="lg:hidden glass-effect rounded-none sm:rounded-2xl p-4 sm:p-6 animate-in fade-in duration-500">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold text-white">Potency</h2>
-                  {coa.metadata?.status && (
-                    <span className={`px-3 py-1.5 rounded-full text-[13px] font-medium ${
-                      coa.metadata.status.toLowerCase() === 'pass'
-                        ? 'bg-emerald-500/15 text-emerald-400'
-                        : 'bg-red-500/15 text-red-400'
-                    }`}>
-                      {coa.metadata.status}
-                    </span>
-                  )}
                 </div>
                 <div className="text-center mb-4">
                   <p className="text-sm text-white/50 mb-1">{topCannabinoids[0].name}</p>
@@ -362,7 +356,7 @@ export default function COAPreviewPage() {
             )}
 
             {/* Certificate Details */}
-            <section className="glass-effect rounded-none sm:rounded-2xl p-4 sm:p-6">
+            <section className="glass-effect rounded-none sm:rounded-2xl p-4 sm:p-6 animate-in fade-in duration-500 delay-100">
               <h2 className="text-lg font-semibold text-white mb-4">Details</h2>
               <div className="space-y-0">
                 <DetailRow label="Product" value={productName} />
@@ -374,13 +368,40 @@ export default function COAPreviewPage() {
                 {coa.metadata?.sample_id && <DetailRow label="Sample ID" value={coa.metadata.sample_id} />}
                 {coa.metadata?.batch_number && <DetailRow label="Batch" value={coa.metadata.batch_number} />}
                 {coa.metadata?.client_license && <DetailRow label="License" value={coa.metadata.client_license} />}
-                {coa.metadata?.lab_name && <DetailRow label="Laboratory" value={coa.metadata.lab_name} />}
+              </div>
+
+              {/* Lab verification */}
+              {coa.metadata?.lab_name && (
+                <div className="mt-4 pt-4 border-t border-white/[0.08]">
+                  <LabBadge
+                    name={coa.metadata.lab_name}
+                    website={coa.metadata?.lab_website}
+                    status={coa.metadata?.status}
+                  />
+                </div>
+              )}
+
+              {/* QR Code for sharing */}
+              <div className="mt-4 pt-4 border-t border-white/[0.08]">
+                <div className="flex items-center gap-4">
+                  <div className="bg-white p-2 rounded-lg">
+                    <QRCodeSVG
+                      value={typeof window !== 'undefined' ? window.location.href : ''}
+                      size={64}
+                      level="M"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">Share this COA</p>
+                    <p className="text-xs text-white/50">Scan to view on another device</p>
+                  </div>
+                </div>
               </div>
             </section>
 
             {/* Cannabinoid Breakdown - Compact for sidebar */}
             {hasData && cannabinoidData.length > 0 && (
-              <section className="glass-effect rounded-none sm:rounded-2xl p-4 sm:p-6">
+              <section className="glass-effect rounded-none sm:rounded-2xl p-4 sm:p-6 animate-in fade-in duration-500 delay-150">
                 <h2 className="text-lg font-semibold text-white mb-4">Cannabinoids</h2>
 
                 {/* Pie Chart - smaller on desktop sidebar */}
@@ -437,7 +458,7 @@ export default function COAPreviewPage() {
 
             {/* Terpenes */}
             {hasData && terpeneData.length > 0 && (
-              <section className="glass-effect rounded-none sm:rounded-2xl p-4 sm:p-6">
+              <section className="glass-effect rounded-none sm:rounded-2xl p-4 sm:p-6 animate-in fade-in duration-500 delay-200">
                 <h2 className="text-lg font-semibold text-white mb-4">Terpenes</h2>
                 <div className="space-y-3">
                   {terpeneData.slice(0, 6).map((t: any) => (
@@ -460,7 +481,7 @@ export default function COAPreviewPage() {
 
             {/* Test Panels */}
             {hasData && activeTests.length > 0 && (
-              <section className="glass-effect rounded-none sm:rounded-2xl p-4 sm:p-6">
+              <section className="glass-effect rounded-none sm:rounded-2xl p-4 sm:p-6 animate-in fade-in duration-500 delay-300">
                 <h2 className="text-lg font-semibold text-white mb-3">Testing</h2>
                 <div className="flex flex-wrap gap-2">
                   {activeTests.map(test => (
@@ -565,4 +586,42 @@ function formatDate(dateStr?: string): string {
   } catch {
     return dateStr
   }
+}
+
+function LabBadge({ name, website, status }: { name: string; website?: string; status?: string }) {
+  const isPass = status?.toLowerCase() === 'pass'
+
+  const content = (
+    <div className="flex items-center gap-2.5">
+      <div className={`flex items-center justify-center w-8 h-8 rounded-lg ${
+        isPass ? 'bg-emerald-500/15' : 'bg-white/[0.08]'
+      }`}>
+        <ShieldCheck className={`w-4 h-4 ${isPass ? 'text-emerald-400' : 'text-white/40'}`} />
+      </div>
+      <div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm font-medium text-white">{name}</span>
+          {website && <ExternalLink className="w-3 h-3 text-white/30" />}
+        </div>
+        <span className={`text-xs ${isPass ? 'text-emerald-400' : 'text-white/40'}`}>
+          {isPass ? 'Verified Lab · All Tests Passed' : 'Testing Laboratory'}
+        </span>
+      </div>
+    </div>
+  )
+
+  if (website) {
+    return (
+      <a
+        href={website.startsWith('http') ? website : `https://${website}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block hover:opacity-80 transition-opacity"
+      >
+        {content}
+      </a>
+    )
+  }
+
+  return content
 }
