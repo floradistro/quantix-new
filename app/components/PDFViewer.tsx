@@ -56,15 +56,15 @@ export default function PDFViewer({ url, className = '' }: PDFViewerProps) {
 
           const page = await pdf.getPage(pageNum)
 
-          // Calculate scale to fit container width
-          const containerWidth = containerRef.current?.clientWidth || 400
+          // Calculate scale to fit full container width
+          const containerWidth = containerRef.current?.clientWidth || window.innerWidth
           const viewport = page.getViewport({ scale: 1 })
-          const scale = (containerWidth - 16) / viewport.width // 16px for padding
+          const scale = containerWidth / viewport.width
           const scaledViewport = page.getViewport({ scale })
 
-          // Create canvas for this page
+          // Create canvas for this page - full width, no gaps
           const canvas = document.createElement('canvas')
-          canvas.className = 'w-full mb-2 last:mb-0 rounded shadow-sm'
+          canvas.className = 'block w-full'
           canvas.width = scaledViewport.width * 2 // 2x for retina
           canvas.height = scaledViewport.height * 2
           canvas.style.width = `${scaledViewport.width}px`
@@ -107,7 +107,7 @@ export default function PDFViewer({ url, className = '' }: PDFViewerProps) {
   return (
     <div className={`relative ${className}`}>
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-neutral-100">
+        <div className="flex items-center justify-center py-20">
           <div className="flex flex-col items-center gap-3">
             <div className="w-8 h-8 border-2 border-neutral-300 border-t-[#0071e3] rounded-full animate-spin" />
             <p className="text-sm text-neutral-500">Loading document...</p>
@@ -116,7 +116,7 @@ export default function PDFViewer({ url, className = '' }: PDFViewerProps) {
       )}
 
       {error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-neutral-100">
+        <div className="flex items-center justify-center py-20">
           <div className="text-center p-4">
             <p className="text-sm text-red-500 mb-2">Failed to load PDF</p>
             <a
@@ -133,15 +133,9 @@ export default function PDFViewer({ url, className = '' }: PDFViewerProps) {
 
       <div
         ref={containerRef}
-        className="p-2 bg-neutral-200 overflow-y-auto"
+        className="w-full"
         style={{ minHeight: loading ? '400px' : 'auto' }}
       />
-
-      {!loading && !error && pageCount > 1 && (
-        <div className="absolute bottom-3 right-3 px-3 py-1.5 bg-black/60 backdrop-blur rounded-full">
-          <p className="text-xs text-white font-medium">{pageCount} pages</p>
-        </div>
-      )}
     </div>
   )
 }

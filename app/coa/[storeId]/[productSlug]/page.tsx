@@ -536,35 +536,25 @@ export default function COAPreviewPage() {
               </div>
             </section>
 
-            {/* PDF Viewer - Full width, scrollable for multi-page */}
-            <section className="glass-effect rounded-none sm:rounded-2xl overflow-hidden">
-              <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-white/10">
-                <h2 className="text-base sm:text-lg font-semibold text-white">Document</h2>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => coa.file_url && window.open(coa.file_url, '_blank')}
-                    className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-white/[0.08] active:bg-white/[0.12] rounded-full text-white/60 hover:text-white transition-colors sm:hidden"
-                  >
-                    <Download className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => setIsFullscreen(true)}
-                    className="min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2 hover:bg-white/[0.08] active:bg-white/[0.12] rounded-full text-white/60 hover:text-white transition-colors"
-                  >
-                    <Maximize2 className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
+            {/* Mobile: PDF pages rendered seamlessly, full width */}
+            <div className="sm:hidden -mx-0">
+              <PDFViewer url={coa.file_url} />
+            </div>
 
-              {/* Mobile: Render all PDF pages inline with PDF.js */}
-              <div className="sm:hidden">
-                <PDFViewer url={coa.file_url} className="max-h-[80vh] overflow-y-auto" />
+            {/* Desktop: PDF Viewer with header */}
+            <section className="hidden sm:block glass-effect rounded-2xl overflow-hidden">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+                <h2 className="text-lg font-semibold text-white">Document</h2>
+                <button
+                  onClick={() => setIsFullscreen(true)}
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2 hover:bg-white/[0.08] active:bg-white/[0.12] rounded-full text-white/60 hover:text-white transition-colors"
+                >
+                  <Maximize2 className="w-5 h-5" />
+                </button>
               </div>
-
-              {/* Desktop: Full PDF embed with native viewer */}
-              <div className="hidden sm:block relative w-full bg-neutral-200" style={{ height: '70vh', minHeight: '500px' }}>
+              <div className="relative w-full bg-neutral-200" style={{ height: '70vh', minHeight: '500px' }}>
                 <iframe
-                  src={`/api/pdf-proxy?url=${encodeURIComponent(coa.file_url)}#toolbar=1&navpanes=1&scrollbar=1&view=FitW`}
+                  src={`/api/pdf-proxy?url=${encodeURIComponent(coa.file_url)}#toolbar=0&navpanes=0&scrollbar=1&view=FitW`}
                   className="absolute inset-0 w-full h-full"
                   title="Certificate PDF"
                   style={{ border: 'none' }}
