@@ -1,38 +1,84 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   FileText, Download, Share2, Calendar, Building2, Check,
   Maximize2, FlaskConical, Leaf, Droplets, Shield,
-  BadgeCheck, Hash, Beaker, X
+  BadgeCheck, Hash, Beaker, X, TestTube, Dna
 } from 'lucide-react'
 import Logo from '@/app/components/Logo'
+import {
+  PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
+  Tooltip, Legend
+} from 'recharts'
+
+interface CannabinoidDetail {
+  name: string
+  percent: number
+  mg_per_g: number
+  lod: number
+  loq: number
+  result: string
+}
 
 interface COAData {
   id: string
   document_name: string
   file_url: string
   created_at: string
-  completed_date?: string
   store_id: string
   thumbnail_url?: string
   metadata?: {
     sample_id?: string
+    sample_name?: string
+    sample_type?: string
+    sample_size?: string
+    strain?: string
     batch_number?: string
     test_date?: string
     issue_date?: string
+    date_collected?: string
+    date_received?: string
+    date_tested?: string
+    date_reported?: string
     lab_name?: string
+    lab_contact?: string
+    lab_website?: string
+    lab_director?: string
+    director_title?: string
+    logo_url?: string
+    signature_url?: string
     test_type?: string
     status?: string
-    test_results?: any
+    client_name?: string
+    client_address?: string
+    client_license?: string
+    product_name?: string
     thc_total?: number
     cbd_total?: number
     terpenes_total?: number
+    cannabinoids_total?: number
+    moisture?: number
     cannabinoids?: Record<string, number>
+    cannabinoids_detailed?: CannabinoidDetail[]
     terpenes?: Record<string, number>
+    terpenes_detailed?: any[]
+    test_panels?: Record<string, boolean>
     safety_tests?: Record<string, string>
+    // Individual cannabinoids
+    thca?: number
+    d9_thc?: number
+    d8_thc?: number
+    thcp?: number
+    thcv?: number
+    cbd?: number
+    cbda?: number
+    cbg?: number
+    cbga?: number
+    cbn?: number
+    cbc?: number
   }
   stores?: {
     store_name: string
@@ -44,113 +90,7 @@ interface COAData {
   }
 }
 
-// Animated number counter
-function AnimatedValue({ value, suffix = '%', decimals = 2 }: { value: number; suffix?: string; decimals?: number }) {
-  const [display, setDisplay] = useState(0)
-  const ref = useRef<number | null>(null)
-
-  useEffect(() => {
-    const start = performance.now()
-    const duration = 1200
-    const animate = (now: number) => {
-      const progress = Math.min((now - start) / duration, 1)
-      const eased = 1 - Math.pow(1 - progress, 3)
-      setDisplay(value * eased)
-      if (progress < 1) ref.current = requestAnimationFrame(animate)
-    }
-    ref.current = requestAnimationFrame(animate)
-    return () => {
-      if (ref.current) cancelAnimationFrame(ref.current)
-    }
-  }, [value])
-
-  return <>{display.toFixed(decimals)}{suffix}</>
-}
-
-// Compact potency card with large value
-function PotencyCard({ label, value, color, delay = 0 }: {
-  label: string; value: number; color: string; delay?: number
-}) {
-  const [visible, setVisible] = useState(false)
-  useEffect(() => {
-    const t = setTimeout(() => setVisible(true), delay)
-    return () => clearTimeout(t)
-  }, [delay])
-
-  const colors: Record<string, string> = {
-    green: 'from-emerald-500/20 to-emerald-600/5 border-emerald-500/40 text-emerald-400',
-    blue: 'from-blue-500/20 to-blue-600/5 border-blue-500/40 text-blue-400',
-    purple: 'from-purple-500/20 to-purple-600/5 border-purple-500/40 text-purple-400',
-    orange: 'from-orange-500/20 to-orange-600/5 border-orange-500/40 text-orange-400',
-    cyan: 'from-cyan-500/20 to-cyan-600/5 border-cyan-500/40 text-cyan-400',
-    pink: 'from-pink-500/20 to-pink-600/5 border-pink-500/40 text-pink-400',
-  }
-
-  return (
-    <div className={`bg-gradient-to-br ${colors[color]} border rounded-xl p-3 text-center transition-all duration-500 ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-      <p className="text-[10px] uppercase tracking-wider text-white/50 mb-1">{label}</p>
-      <p className={`text-2xl font-bold ${colors[color].split(' ').pop()}`}>
-        {visible ? <AnimatedValue value={value} /> : '0.00%'}
-      </p>
-    </div>
-  )
-}
-
-// Horizontal bar with inline label
-function CompoundBar({ name, value, maxValue, color, delay = 0 }: {
-  name: string; value: number; maxValue: number; color: string; delay?: number
-}) {
-  const [visible, setVisible] = useState(false)
-  useEffect(() => {
-    const t = setTimeout(() => setVisible(true), delay)
-    return () => clearTimeout(t)
-  }, [delay])
-
-  const pct = Math.min((value / maxValue) * 100, 100)
-  const gradients: Record<string, string> = {
-    green: 'from-emerald-500 to-green-400',
-    purple: 'from-purple-500 to-violet-400',
-    blue: 'from-blue-500 to-cyan-400',
-    orange: 'from-orange-500 to-amber-400',
-  }
-
-  return (
-    <div className={`transition-all duration-500 ${visible ? 'opacity-100' : 'opacity-0'}`}>
-      <div className="flex items-center justify-between text-xs mb-1">
-        <span className="text-white/70 truncate">{name}</span>
-        <span className="text-white font-mono ml-2">{value.toFixed(2)}%</span>
-      </div>
-      <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-        <div
-          className={`h-full bg-gradient-to-r ${gradients[color] || gradients.green} rounded-full transition-all duration-1000 ease-out`}
-          style={{ width: visible ? `${pct}%` : '0%' }}
-        />
-      </div>
-    </div>
-  )
-}
-
-// Info row component
-function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
-  return (
-    <div className="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
-      <Icon className="w-4 h-4 text-white/40 flex-shrink-0" />
-      <span className="text-xs text-white/50 w-20 flex-shrink-0">{label}</span>
-      <span className="text-sm text-white truncate">{value}</span>
-    </div>
-  )
-}
-
-// Safety badge
-function SafetyBadge({ name, status }: { name: string; status: string }) {
-  const pass = ['pass', 'passed', 'nd', 'not detected'].includes(status.toLowerCase())
-  return (
-    <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs ${pass ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-      {pass ? <BadgeCheck className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
-      <span className="truncate">{name}</span>
-    </div>
-  )
-}
+const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f97316', '#ec4899', '#06b6d4', '#84cc16', '#f43f5e']
 
 export default function COAPreviewPage() {
   const params = useParams()
@@ -177,7 +117,6 @@ export default function COAPreviewPage() {
       const result = await response.json()
       if (result.data) {
         setCoa(result.data)
-        // Track QR scan
         trackScan(result.data.id, result.data.metadata?.sample_id)
       }
       else setError('Certificate not found')
@@ -203,7 +142,6 @@ export default function COAPreviewPage() {
         }),
       })
     } catch (err) {
-      // Silent fail - don't disrupt user experience
       console.debug('Scan tracking failed:', err)
     }
   }
@@ -219,52 +157,79 @@ export default function COAPreviewPage() {
     }
   }
 
-  // Parse data
-  const testResults = coa?.metadata?.test_results || {}
-  const cannabinoids = coa?.metadata?.cannabinoids || {}
-  const terpenes = coa?.metadata?.terpenes || {}
-  const safetyTests = coa?.metadata?.safety_tests || {}
+  // Parse cannabinoid data
+  const getCannabinoidData = () => {
+    if (!coa?.metadata) return []
 
-  // Totals from metadata
-  const thcTotal = coa?.metadata?.thc_total ?? 0
-  const cbdTotal = coa?.metadata?.cbd_total ?? 0
-  const terpenesTotal = coa?.metadata?.terpenes_total ?? 0
+    // Try cannabinoids_detailed first (most complete)
+    if (coa.metadata.cannabinoids_detailed?.length) {
+      return coa.metadata.cannabinoids_detailed
+        .filter(c => c.percent > 0)
+        .sort((a, b) => b.percent - a.percent)
+    }
 
-  // Build cannabinoid array from structured cannabinoids first
-  let cannabinoidsArray = Object.entries(cannabinoids)
-    .map(([name, value]) => ({ name, value: value as number }))
-    .filter(item => item.value > 0)
-    .sort((a, b) => b.value - a.value)
+    // Try cannabinoids object
+    if (coa.metadata.cannabinoids && Object.keys(coa.metadata.cannabinoids).length > 0) {
+      return Object.entries(coa.metadata.cannabinoids)
+        .filter(([_, value]) => value > 0)
+        .map(([name, percent]) => ({ name, percent, mg_per_g: percent * 10, lod: 0, loq: 0, result: String(percent) }))
+        .sort((a, b) => b.percent - a.percent)
+    }
 
-  // If no structured cannabinoids, try test_results
-  if (cannabinoidsArray.length === 0 && Object.keys(testResults).length > 0) {
-    cannabinoidsArray = Object.entries(testResults)
-      .map(([key, val]) => ({
-        name: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-        value: typeof val === 'number' ? val : parseFloat(val as string) || 0
-      }))
-      .filter(item => item.value > 0)
-      .sort((a, b) => b.value - a.value)
+    return []
   }
 
-  const terpenesArray = Object.entries(terpenes)
-    .map(([name, value]) => ({ name, value: value as number }))
-    .filter(item => item.value > 0)
-    .sort((a, b) => b.value - a.value)
+  // Parse terpene data
+  const getTerpeneData = () => {
+    if (!coa?.metadata) return []
 
-  const safetyArray = Object.entries(safetyTests)
-    .map(([name, status]) => ({ name: name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), status: status as string }))
+    if (coa.metadata.terpenes_detailed?.length) {
+      return coa.metadata.terpenes_detailed
+        .filter((t: any) => t.percent > 0)
+        .sort((a: any, b: any) => b.percent - a.percent)
+    }
 
-  // Get top cannabinoids for hero display
-  const topCannabinoids = cannabinoidsArray.slice(0, 4)
-  const remainingCannabinoids = cannabinoidsArray.slice(4)
-  const maxCannabinoid = cannabinoidsArray[0]?.value || 30
-  const maxTerpene = terpenesArray[0]?.value || 5
+    if (coa.metadata.terpenes && Object.keys(coa.metadata.terpenes).length > 0) {
+      return Object.entries(coa.metadata.terpenes)
+        .filter(([_, value]) => value > 0)
+        .map(([name, percent]) => ({ name, percent }))
+        .sort((a, b) => b.percent - a.percent)
+    }
+
+    return []
+  }
+
+  const cannabinoidData = getCannabinoidData()
+  const terpeneData = getTerpeneData()
+
+  // Prepare chart data
+  const pieData = cannabinoidData.slice(0, 6).map((c, i) => ({
+    name: c.name,
+    value: c.percent,
+    color: COLORS[i % COLORS.length]
+  }))
+
+  const barData = cannabinoidData.map(c => ({
+    name: c.name,
+    percent: c.percent
+  }))
+
+  // Test panels
+  const testPanels = coa?.metadata?.test_panels || {}
+  const activeTests = Object.entries(testPanels).filter(([_, active]) => active).map(([name]) => name)
+
+  // Totals
+  const thcTotal = coa?.metadata?.thc_total ?? 0
+  const cbdTotal = coa?.metadata?.cbd_total ?? 0
+  const cannabinoidsTotal = coa?.metadata?.cannabinoids_total ?? 0
+  const terpenesTotal = coa?.metadata?.terpenes_total ?? 0
+
+  const hasData = cannabinoidData.length > 0 || terpeneData.length > 0 || thcTotal > 0
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="w-12 h-12 border-3 border-[#0071e3] border-t-transparent rounded-full animate-spin" />
+        <div className="w-12 h-12 border-4 border-[#0071e3] border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -281,6 +246,8 @@ export default function COAPreviewPage() {
     )
   }
 
+  const productName = coa.metadata?.sample_name || coa.metadata?.product_name || coa.products?.name || coa.document_name
+
   return (
     <main className="min-h-screen bg-background">
       {/* Header */}
@@ -289,8 +256,8 @@ export default function COAPreviewPage() {
           <div className="flex items-center gap-3 min-w-0">
             <Logo size="sm" showText={false} href="/" />
             <div className="min-w-0">
-              <h1 className="text-base font-semibold text-white truncate">{coa.products?.name || coa.document_name}</h1>
-              <p className="text-xs text-white/50 truncate">{coa.stores?.store_name}</p>
+              <h1 className="text-base font-semibold text-white truncate">{productName}</h1>
+              <p className="text-xs text-white/50 truncate">{coa.stores?.store_name || coa.metadata?.client_name}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -306,142 +273,224 @@ export default function COAPreviewPage() {
       </header>
 
       <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Determine if we have test data for left column */}
-        {(() => {
-          const hasTestData = topCannabinoids.length > 0 || terpenesArray.length > 0 || safetyArray.length > 0
+        <div className={`grid grid-cols-1 ${hasData ? 'lg:grid-cols-2' : ''} gap-4`}>
 
-          return (
-            <div className={`grid grid-cols-1 ${hasTestData ? 'lg:grid-cols-2' : ''} gap-4`}>
-              {/* Left Column - Only show if we have test data */}
-              {hasTestData && (
-                <div className="space-y-4">
-                  {/* Potency Hero - Top Cannabinoids */}
-                  {topCannabinoids.length > 0 && (
-                    <div className="glass-effect rounded-xl p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <FlaskConical className="w-4 h-4 text-[#0071e3]" />
-                        <h2 className="text-sm font-semibold text-white">Potency Analysis</h2>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {topCannabinoids.map((c, i) => (
-                          <PotencyCard
-                            key={c.name}
-                            label={c.name}
-                            value={c.value}
-                            color={i === 0 ? 'green' : i === 1 ? 'blue' : i === 2 ? 'purple' : 'orange'}
-                            delay={i * 80}
-                          />
-                        ))}
-                      </div>
-                      {/* Totals row */}
-                      {(thcTotal > 0 || cbdTotal > 0) && (
-                        <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-white/10">
-                          {thcTotal > 0 && (
-                            <div className="text-center">
-                              <p className="text-[10px] text-white/40 uppercase">Total THC</p>
-                              <p className="text-lg font-bold text-emerald-400">{thcTotal.toFixed(2)}%</p>
-                            </div>
-                          )}
-                          {cbdTotal > 0 && (
-                            <div className="text-center">
-                              <p className="text-[10px] text-white/40 uppercase">Total CBD</p>
-                              <p className="text-lg font-bold text-blue-400">{cbdTotal.toFixed(2)}%</p>
-                            </div>
-                          )}
-                          {terpenesTotal > 0 && (
-                            <div className="text-center">
-                              <p className="text-[10px] text-white/40 uppercase">Terpenes</p>
-                              <p className="text-lg font-bold text-purple-400">{terpenesTotal.toFixed(2)}%</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
+          {/* Left Column - Data & Charts */}
+          {hasData && (
+            <div className="space-y-4">
+              {/* Potency Summary */}
+              <div className="glass-effect rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <FlaskConical className="w-4 h-4 text-[#0071e3]" />
+                  <h2 className="text-sm font-semibold text-white">Potency Analysis</h2>
+                  {coa.metadata?.status && (
+                    <span className={`ml-auto px-2 py-0.5 rounded text-xs font-medium ${
+                      coa.metadata.status.toLowerCase() === 'pass' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
+                    }`}>
+                      {coa.metadata.status}
+                    </span>
+                  )}
+                </div>
+
+                {/* Totals Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                  {thcTotal > 0 && (
+                    <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3 text-center">
+                      <p className="text-[10px] text-white/50 uppercase tracking-wider">Total THC</p>
+                      <p className="text-xl font-bold text-emerald-400">{thcTotal.toFixed(2)}%</p>
                     </div>
                   )}
-
-                  {/* Additional Cannabinoids */}
-                  {remainingCannabinoids.length > 0 && (
-                    <div className="glass-effect rounded-xl p-4">
-                      <h3 className="text-xs font-medium text-white/60 mb-3">Additional Cannabinoids</h3>
-                      <div className="space-y-2.5">
-                        {remainingCannabinoids.slice(0, 8).map((c, i) => (
-                          <CompoundBar key={c.name} name={c.name} value={c.value} maxValue={maxCannabinoid} color="green" delay={i * 60} />
-                        ))}
-                      </div>
+                  {cbdTotal > 0 && (
+                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-center">
+                      <p className="text-[10px] text-white/50 uppercase tracking-wider">Total CBD</p>
+                      <p className="text-xl font-bold text-blue-400">{cbdTotal.toFixed(2)}%</p>
                     </div>
                   )}
-
-                  {/* Terpene Profile */}
-                  {terpenesArray.length > 0 && (
-                    <div className="glass-effect rounded-xl p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Droplets className="w-4 h-4 text-purple-400" />
-                        <h2 className="text-sm font-semibold text-white">Terpene Profile</h2>
-                      </div>
-                      <div className="space-y-2.5">
-                        {terpenesArray.slice(0, 8).map((t, i) => (
-                          <CompoundBar key={t.name} name={t.name} value={t.value} maxValue={maxTerpene * 1.2} color="purple" delay={i * 60} />
-                        ))}
-                      </div>
+                  {cannabinoidsTotal > 0 && (
+                    <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 text-center">
+                      <p className="text-[10px] text-white/50 uppercase tracking-wider">Cannabinoids</p>
+                      <p className="text-xl font-bold text-purple-400">{cannabinoidsTotal.toFixed(2)}%</p>
                     </div>
                   )}
-
-                  {/* Safety Tests */}
-                  {safetyArray.length > 0 && (
-                    <div className="glass-effect rounded-xl p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Shield className="w-4 h-4 text-emerald-400" />
-                        <h2 className="text-sm font-semibold text-white">Safety Screening</h2>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {safetyArray.map(t => (
-                          <SafetyBadge key={t.name} name={t.name} status={t.status} />
-                        ))}
-                      </div>
+                  {terpenesTotal > 0 && (
+                    <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 text-center">
+                      <p className="text-[10px] text-white/50 uppercase tracking-wider">Terpenes</p>
+                      <p className="text-xl font-bold text-orange-400">{terpenesTotal.toFixed(2)}%</p>
                     </div>
                   )}
+                </div>
+
+                {/* Pie Chart */}
+                {pieData.length > 0 && (
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={pieData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={40}
+                          outerRadius={70}
+                          paddingAngle={2}
+                          dataKey="value"
+                          animationBegin={0}
+                          animationDuration={800}
+                        >
+                          {pieData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                          labelStyle={{ color: 'white' }}
+                          formatter={(value) => [`${Number(value).toFixed(2)}%`, '']}
+                        />
+                        <Legend
+                          wrapperStyle={{ fontSize: '11px' }}
+                          formatter={(value) => <span className="text-white/70">{value}</span>}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </div>
+
+              {/* Cannabinoid Breakdown */}
+              {cannabinoidData.length > 0 && (
+                <div className="glass-effect rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Dna className="w-4 h-4 text-emerald-400" />
+                    <h2 className="text-sm font-semibold text-white">Cannabinoid Breakdown</h2>
+                  </div>
+
+                  <div className="h-56">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={barData} layout="vertical" margin={{ left: 60, right: 20 }}>
+                        <XAxis type="number" domain={[0, 'auto']} tickFormatter={(v) => `${v}%`} tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10 }} />
+                        <YAxis type="category" dataKey="name" tick={{ fill: 'rgba(255,255,255,0.7)', fontSize: 11 }} width={55} />
+                        <Tooltip
+                          contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                          formatter={(value) => [`${Number(value).toFixed(2)}%`, 'Potency']}
+                        />
+                        <Bar dataKey="percent" fill="#10b981" radius={[0, 4, 4, 0]} animationDuration={1000} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Detailed table */}
+                  <div className="mt-4 overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-white/10">
+                          <th className="text-left py-2 text-white/50 font-medium">Compound</th>
+                          <th className="text-right py-2 text-white/50 font-medium">%</th>
+                          <th className="text-right py-2 text-white/50 font-medium">mg/g</th>
+                          <th className="text-right py-2 text-white/50 font-medium">Result</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {cannabinoidData.map((c, i) => (
+                          <tr key={c.name} className="border-b border-white/5">
+                            <td className="py-2 text-white">{c.name}</td>
+                            <td className="py-2 text-right text-white font-mono">{c.percent.toFixed(2)}</td>
+                            <td className="py-2 text-right text-white/60 font-mono">{c.mg_per_g.toFixed(1)}</td>
+                            <td className="py-2 text-right text-white/60">{c.result}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
 
-              {/* Right Column (or only column if no test data) */}
-              <div className="space-y-4">
-                {/* Certificate Details */}
+              {/* Terpenes */}
+              {terpeneData.length > 0 && (
+                <div className="glass-effect rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Droplets className="w-4 h-4 text-purple-400" />
+                    <h2 className="text-sm font-semibold text-white">Terpene Profile</h2>
+                  </div>
+                  <div className="space-y-2">
+                    {terpeneData.slice(0, 8).map((t: any, i: number) => (
+                      <div key={t.name} className="flex items-center gap-3">
+                        <span className="text-xs text-white/70 w-24 truncate">{t.name}</span>
+                        <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-purple-500 to-violet-400 rounded-full transition-all duration-1000"
+                            style={{ width: `${Math.min((t.percent / (terpeneData[0]?.percent || 1)) * 100, 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-white font-mono w-14 text-right">{t.percent.toFixed(2)}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Test Panels */}
+              {activeTests.length > 0 && (
                 <div className="glass-effect rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-3">
-                    <FileText className="w-4 h-4 text-[#0071e3]" />
-                    <h2 className="text-sm font-semibold text-white">Certificate Details</h2>
+                    <Shield className="w-4 h-4 text-emerald-400" />
+                    <h2 className="text-sm font-semibold text-white">Test Panels</h2>
                   </div>
-                  <div className="space-y-0">
-                    <InfoRow icon={Leaf} label="Product" value={coa.products?.name || coa.document_name} />
-                    <InfoRow icon={Building2} label="Retailer" value={coa.stores?.store_name || 'Unknown'} />
-                    <InfoRow icon={Calendar} label="Issued" value={new Date(coa.metadata?.issue_date || coa.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} />
-                    {coa.metadata?.sample_id && <InfoRow icon={Hash} label="Sample ID" value={coa.metadata.sample_id} />}
-                    {coa.metadata?.batch_number && <InfoRow icon={Beaker} label="Batch" value={coa.metadata.batch_number} />}
-                    {coa.metadata?.lab_name && <InfoRow icon={FlaskConical} label="Laboratory" value={coa.metadata.lab_name} />}
+                  <div className="flex flex-wrap gap-2">
+                    {activeTests.map(test => (
+                      <div key={test} className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-xs text-emerald-400">
+                        <BadgeCheck className="w-3.5 h-3.5" />
+                        {test.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </div>
+                    ))}
                   </div>
                 </div>
+              )}
+            </div>
+          )}
 
-                {/* PDF Viewer */}
-                <div className="glass-effect rounded-xl overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-2 border-b border-white/10">
-                    <span className="text-sm font-medium text-white">Certificate Document</span>
-                    <button onClick={() => setIsFullscreen(true)} className="p-1.5 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition-colors">
-                      <Maximize2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className={`bg-gray-100 ${hasTestData ? 'h-[60vh]' : 'h-[75vh]'}`}>
-                    <iframe
-                      src={`/api/pdf-proxy?url=${encodeURIComponent(coa.file_url)}`}
-                      className="w-full h-full"
-                      title="Certificate PDF"
-                      style={{ border: 'none' }}
-                    />
-                  </div>
-                </div>
+          {/* Right Column - Details & PDF */}
+          <div className="space-y-4">
+            {/* Certificate Details */}
+            <div className="glass-effect rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <FileText className="w-4 h-4 text-[#0071e3]" />
+                <h2 className="text-sm font-semibold text-white">Certificate Details</h2>
+              </div>
+              <div className="space-y-0 text-sm">
+                <InfoRow icon={Leaf} label="Product" value={productName} />
+                <InfoRow icon={TestTube} label="Type" value={coa.metadata?.sample_type || coa.metadata?.test_type || '-'} />
+                {coa.metadata?.strain && <InfoRow icon={Dna} label="Strain" value={coa.metadata.strain} />}
+                <InfoRow icon={Building2} label="Client" value={coa.metadata?.client_name || coa.stores?.store_name || '-'} />
+                <InfoRow icon={Calendar} label="Tested" value={formatDate(coa.metadata?.date_tested || coa.metadata?.test_date)} />
+                <InfoRow icon={Calendar} label="Reported" value={formatDate(coa.metadata?.date_reported || coa.metadata?.issue_date || coa.created_at)} />
+                {coa.metadata?.sample_id && <InfoRow icon={Hash} label="Sample ID" value={coa.metadata.sample_id} />}
+                {coa.metadata?.batch_number && <InfoRow icon={Beaker} label="Batch" value={coa.metadata.batch_number} />}
+                {coa.metadata?.client_license && <InfoRow icon={BadgeCheck} label="License" value={coa.metadata.client_license} />}
+                {coa.metadata?.lab_name && <InfoRow icon={FlaskConical} label="Laboratory" value={coa.metadata.lab_name} />}
+                {coa.metadata?.moisture !== undefined && coa.metadata.moisture > 0 && (
+                  <InfoRow icon={Droplets} label="Moisture" value={`${coa.metadata.moisture.toFixed(2)}%`} />
+                )}
               </div>
             </div>
-          )
-        })()}
+
+            {/* PDF Viewer */}
+            <div className="glass-effect rounded-xl overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-white/10">
+                <span className="text-sm font-medium text-white">Certificate Document</span>
+                <button onClick={() => setIsFullscreen(true)} className="p-1.5 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition-colors">
+                  <Maximize2 className="w-4 h-4" />
+                </button>
+              </div>
+              <div className={`bg-gray-100 ${hasData ? 'h-[50vh]' : 'h-[70vh]'}`}>
+                <iframe
+                  src={`/api/pdf-proxy?url=${encodeURIComponent(coa.file_url)}`}
+                  className="w-full h-full"
+                  title="Certificate PDF"
+                  style={{ border: 'none' }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Footer */}
         <p className="text-center text-xs text-white/30 mt-8">
@@ -465,4 +514,23 @@ export default function COAPreviewPage() {
       )}
     </main>
   )
+}
+
+function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+      <Icon className="w-4 h-4 text-white/40 flex-shrink-0" />
+      <span className="text-xs text-white/50 w-20 flex-shrink-0">{label}</span>
+      <span className="text-sm text-white truncate">{value}</span>
+    </div>
+  )
+}
+
+function formatDate(dateStr?: string): string {
+  if (!dateStr) return '-'
+  try {
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  } catch {
+    return dateStr
+  }
 }
