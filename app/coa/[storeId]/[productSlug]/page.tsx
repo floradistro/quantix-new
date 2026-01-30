@@ -282,135 +282,142 @@ export default function COAPreviewPage() {
       </header>
 
       <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Determine if we have test data for left column */}
+        {(() => {
+          const hasTestData = topCannabinoids.length > 0 || terpenesArray.length > 0 || safetyArray.length > 0
 
-          {/* Left Column */}
-          <div className="space-y-4">
-            {/* Potency Hero - Top Cannabinoids */}
-            {topCannabinoids.length > 0 && (
-              <div className="glass-effect rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <FlaskConical className="w-4 h-4 text-[#0071e3]" />
-                  <h2 className="text-sm font-semibold text-white">Potency Analysis</h2>
+          return (
+            <div className={`grid grid-cols-1 ${hasTestData ? 'lg:grid-cols-2' : ''} gap-4`}>
+              {/* Left Column - Only show if we have test data */}
+              {hasTestData && (
+                <div className="space-y-4">
+                  {/* Potency Hero - Top Cannabinoids */}
+                  {topCannabinoids.length > 0 && (
+                    <div className="glass-effect rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <FlaskConical className="w-4 h-4 text-[#0071e3]" />
+                        <h2 className="text-sm font-semibold text-white">Potency Analysis</h2>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {topCannabinoids.map((c, i) => (
+                          <PotencyCard
+                            key={c.name}
+                            label={c.name}
+                            value={c.value}
+                            color={i === 0 ? 'green' : i === 1 ? 'blue' : i === 2 ? 'purple' : 'orange'}
+                            delay={i * 80}
+                          />
+                        ))}
+                      </div>
+                      {/* Totals row */}
+                      {(thcTotal > 0 || cbdTotal > 0) && (
+                        <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-white/10">
+                          {thcTotal > 0 && (
+                            <div className="text-center">
+                              <p className="text-[10px] text-white/40 uppercase">Total THC</p>
+                              <p className="text-lg font-bold text-emerald-400">{thcTotal.toFixed(2)}%</p>
+                            </div>
+                          )}
+                          {cbdTotal > 0 && (
+                            <div className="text-center">
+                              <p className="text-[10px] text-white/40 uppercase">Total CBD</p>
+                              <p className="text-lg font-bold text-blue-400">{cbdTotal.toFixed(2)}%</p>
+                            </div>
+                          )}
+                          {terpenesTotal > 0 && (
+                            <div className="text-center">
+                              <p className="text-[10px] text-white/40 uppercase">Terpenes</p>
+                              <p className="text-lg font-bold text-purple-400">{terpenesTotal.toFixed(2)}%</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Additional Cannabinoids */}
+                  {remainingCannabinoids.length > 0 && (
+                    <div className="glass-effect rounded-xl p-4">
+                      <h3 className="text-xs font-medium text-white/60 mb-3">Additional Cannabinoids</h3>
+                      <div className="space-y-2.5">
+                        {remainingCannabinoids.slice(0, 8).map((c, i) => (
+                          <CompoundBar key={c.name} name={c.name} value={c.value} maxValue={maxCannabinoid} color="green" delay={i * 60} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Terpene Profile */}
+                  {terpenesArray.length > 0 && (
+                    <div className="glass-effect rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Droplets className="w-4 h-4 text-purple-400" />
+                        <h2 className="text-sm font-semibold text-white">Terpene Profile</h2>
+                      </div>
+                      <div className="space-y-2.5">
+                        {terpenesArray.slice(0, 8).map((t, i) => (
+                          <CompoundBar key={t.name} name={t.name} value={t.value} maxValue={maxTerpene * 1.2} color="purple" delay={i * 60} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Safety Tests */}
+                  {safetyArray.length > 0 && (
+                    <div className="glass-effect rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Shield className="w-4 h-4 text-emerald-400" />
+                        <h2 className="text-sm font-semibold text-white">Safety Screening</h2>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {safetyArray.map(t => (
+                          <SafetyBadge key={t.name} name={t.name} status={t.status} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {topCannabinoids.map((c, i) => (
-                    <PotencyCard
-                      key={c.name}
-                      label={c.name}
-                      value={c.value}
-                      color={i === 0 ? 'green' : i === 1 ? 'blue' : i === 2 ? 'purple' : 'orange'}
-                      delay={i * 80}
-                    />
-                  ))}
-                </div>
-                {/* Totals row */}
-                {(thcTotal > 0 || cbdTotal > 0) && (
-                  <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-white/10">
-                    {thcTotal > 0 && (
-                      <div className="text-center">
-                        <p className="text-[10px] text-white/40 uppercase">Total THC</p>
-                        <p className="text-lg font-bold text-emerald-400">{thcTotal.toFixed(2)}%</p>
-                      </div>
-                    )}
-                    {cbdTotal > 0 && (
-                      <div className="text-center">
-                        <p className="text-[10px] text-white/40 uppercase">Total CBD</p>
-                        <p className="text-lg font-bold text-blue-400">{cbdTotal.toFixed(2)}%</p>
-                      </div>
-                    )}
-                    {terpenesTotal > 0 && (
-                      <div className="text-center">
-                        <p className="text-[10px] text-white/40 uppercase">Terpenes</p>
-                        <p className="text-lg font-bold text-purple-400">{terpenesTotal.toFixed(2)}%</p>
-                      </div>
-                    )}
+              )}
+
+              {/* Right Column (or only column if no test data) */}
+              <div className="space-y-4">
+                {/* Certificate Details */}
+                <div className="glass-effect rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <FileText className="w-4 h-4 text-[#0071e3]" />
+                    <h2 className="text-sm font-semibold text-white">Certificate Details</h2>
                   </div>
-                )}
-              </div>
-            )}
+                  <div className="space-y-0">
+                    <InfoRow icon={Leaf} label="Product" value={coa.products?.name || coa.document_name} />
+                    <InfoRow icon={Building2} label="Retailer" value={coa.stores?.store_name || 'Unknown'} />
+                    <InfoRow icon={Calendar} label="Issued" value={new Date(coa.metadata?.issue_date || coa.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} />
+                    {coa.metadata?.sample_id && <InfoRow icon={Hash} label="Sample ID" value={coa.metadata.sample_id} />}
+                    {coa.metadata?.batch_number && <InfoRow icon={Beaker} label="Batch" value={coa.metadata.batch_number} />}
+                    {coa.metadata?.lab_name && <InfoRow icon={FlaskConical} label="Laboratory" value={coa.metadata.lab_name} />}
+                  </div>
+                </div>
 
-            {/* Additional Cannabinoids */}
-            {remainingCannabinoids.length > 0 && (
-              <div className="glass-effect rounded-xl p-4">
-                <h3 className="text-xs font-medium text-white/60 mb-3">Additional Cannabinoids</h3>
-                <div className="space-y-2.5">
-                  {remainingCannabinoids.slice(0, 8).map((c, i) => (
-                    <CompoundBar key={c.name} name={c.name} value={c.value} maxValue={maxCannabinoid} color="green" delay={i * 60} />
-                  ))}
+                {/* PDF Viewer */}
+                <div className="glass-effect rounded-xl overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-2 border-b border-white/10">
+                    <span className="text-sm font-medium text-white">Certificate Document</span>
+                    <button onClick={() => setIsFullscreen(true)} className="p-1.5 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition-colors">
+                      <Maximize2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className={`bg-gray-100 ${hasTestData ? 'h-[60vh]' : 'h-[75vh]'}`}>
+                    <iframe
+                      src={`/api/pdf-proxy?url=${encodeURIComponent(coa.file_url)}`}
+                      className="w-full h-full"
+                      title="Certificate PDF"
+                      style={{ border: 'none' }}
+                    />
+                  </div>
                 </div>
-              </div>
-            )}
-
-            {/* Terpene Profile */}
-            {terpenesArray.length > 0 && (
-              <div className="glass-effect rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Droplets className="w-4 h-4 text-purple-400" />
-                  <h2 className="text-sm font-semibold text-white">Terpene Profile</h2>
-                </div>
-                <div className="space-y-2.5">
-                  {terpenesArray.slice(0, 8).map((t, i) => (
-                    <CompoundBar key={t.name} name={t.name} value={t.value} maxValue={maxTerpene * 1.2} color="purple" delay={i * 60} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Safety Tests */}
-            {safetyArray.length > 0 && (
-              <div className="glass-effect rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Shield className="w-4 h-4 text-emerald-400" />
-                  <h2 className="text-sm font-semibold text-white">Safety Screening</h2>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {safetyArray.map(t => (
-                    <SafetyBadge key={t.name} name={t.name} status={t.status} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Right Column */}
-          <div className="space-y-4">
-            {/* Certificate Details */}
-            <div className="glass-effect rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <FileText className="w-4 h-4 text-[#0071e3]" />
-                <h2 className="text-sm font-semibold text-white">Certificate Details</h2>
-              </div>
-              <div className="space-y-0">
-                <InfoRow icon={Leaf} label="Product" value={coa.products?.name || coa.document_name} />
-                <InfoRow icon={Building2} label="Retailer" value={coa.stores?.store_name || 'Unknown'} />
-                <InfoRow icon={Calendar} label="Issued" value={new Date(coa.metadata?.issue_date || coa.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} />
-                {coa.metadata?.sample_id && <InfoRow icon={Hash} label="Sample ID" value={coa.metadata.sample_id} />}
-                {coa.metadata?.batch_number && <InfoRow icon={Beaker} label="Batch" value={coa.metadata.batch_number} />}
-                {coa.metadata?.lab_name && <InfoRow icon={FlaskConical} label="Laboratory" value={coa.metadata.lab_name} />}
               </div>
             </div>
-
-            {/* PDF Viewer */}
-            <div className="glass-effect rounded-xl overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-2 border-b border-white/10">
-                <span className="text-sm font-medium text-white">Certificate Document</span>
-                <button onClick={() => setIsFullscreen(true)} className="p-1.5 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition-colors">
-                  <Maximize2 className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="h-[60vh] bg-gray-100">
-                <iframe
-                  src={`/api/pdf-proxy?url=${encodeURIComponent(coa.file_url)}`}
-                  className="w-full h-full"
-                  title="Certificate PDF"
-                  style={{ border: 'none' }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+          )
+        })()}
 
         {/* Footer */}
         <p className="text-center text-xs text-white/30 mt-8">
