@@ -247,13 +247,6 @@ export default function COAPreviewPage() {
       .sort((a, b) => b.value - a.value)
   }
 
-  // If still no cannabinoids but we have totals, create display cards from totals
-  if (cannabinoidsArray.length === 0 && (thcTotal > 0 || cbdTotal > 0)) {
-    if (thcTotal > 0) cannabinoidsArray.push({ name: 'Total THC', value: thcTotal })
-    if (cbdTotal > 0) cannabinoidsArray.push({ name: 'Total CBD', value: cbdTotal })
-    if (terpenesTotal > 0) cannabinoidsArray.push({ name: 'Terpenes', value: terpenesTotal })
-  }
-
   const terpenesArray = Object.entries(terpenes)
     .map(([name, value]) => ({ name, value: value as number }))
     .filter(item => item.value > 0)
@@ -261,12 +254,6 @@ export default function COAPreviewPage() {
 
   const safetyArray = Object.entries(safetyTests)
     .map(([name, status]) => ({ name: name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), status: status as string }))
-
-  // Check if we have a status to show as safety
-  const hasStatus = coa?.metadata?.status && !safetyArray.length
-  if (hasStatus && coa?.metadata?.status) {
-    safetyArray.push({ name: 'Overall Status', status: coa.metadata.status })
-  }
 
   // Get top cannabinoids for hero display
   const topCannabinoids = cannabinoidsArray.slice(0, 4)
@@ -321,7 +308,7 @@ export default function COAPreviewPage() {
       <div className="max-w-6xl mx-auto px-4 py-6">
         {/* Determine if we have test data for left column */}
         {(() => {
-          const hasTestData = topCannabinoids.length > 0 || terpenesArray.length > 0 || safetyArray.length > 0 || thcTotal > 0 || cbdTotal > 0
+          const hasTestData = topCannabinoids.length > 0 || terpenesArray.length > 0 || safetyArray.length > 0
 
           return (
             <div className={`grid grid-cols-1 ${hasTestData ? 'lg:grid-cols-2' : ''} gap-4`}>
