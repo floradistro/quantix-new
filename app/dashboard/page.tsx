@@ -257,24 +257,19 @@ export default function DashboardPage() {
       // Match COAs to categories based on matrix_types in category metadata
       const categoriesWithCounts = (categories || []).map(cat => {
         const matrixTypes = (cat.metadata as any)?.matrix_types || []
-        const keywords = (cat.metadata as any)?.category_keywords || []
 
         let count = 0
         allCoas?.forEach((coa: any) => {
-          const sampleType = coa.metadata?.sample_type || coa.metadata?.sampleType || ''
-          const docName = coa.document_name?.toLowerCase() || ''
+          // Get matrix/sample_type from COA metadata
+          const coaMatrix = coa.metadata?.sample_type || coa.metadata?.matrix || ''
 
-          // Check matrix type match
+          // Check if COA matrix matches any of the category's matrix types
           const matchesMatrix = matrixTypes.some((mt: string) =>
-            sampleType.toLowerCase().includes(mt.toLowerCase())
+            coaMatrix.toLowerCase() === mt.toLowerCase() ||
+            coaMatrix.toLowerCase().includes(mt.toLowerCase())
           )
 
-          // Check keyword match in document name
-          const matchesKeyword = keywords.some((kw: string) =>
-            docName.includes(kw.toLowerCase())
-          )
-
-          if (matchesMatrix || matchesKeyword) {
+          if (matchesMatrix) {
             count++
           }
         })
@@ -310,13 +305,11 @@ export default function DashboardPage() {
 
       // Get category metadata for filtering
       let matrixTypes: string[] = []
-      let keywords: string[] = []
 
       if (categoryId && categoryId !== 'all') {
         const selectedCat = storeCategories.find(c => c.id === categoryId)
         if (selectedCat?.metadata) {
           matrixTypes = (selectedCat.metadata as any).matrix_types || []
-          keywords = (selectedCat.metadata as any).category_keywords || []
         }
       }
 
@@ -345,23 +338,17 @@ export default function DashboardPage() {
         return
       }
 
-      // Filter by category if selected (based on matrix type or keywords)
+      // Filter by category if selected (based on COA matrix metadata)
       let filteredCoas = allCoas || []
 
-      if (categoryId && categoryId !== 'all' && (matrixTypes.length > 0 || keywords.length > 0)) {
+      if (categoryId && categoryId !== 'all' && matrixTypes.length > 0) {
         filteredCoas = filteredCoas.filter((coa: any) => {
-          const sampleType = coa.metadata?.sample_type || coa.metadata?.sampleType || ''
-          const docName = coa.document_name?.toLowerCase() || ''
+          const coaMatrix = coa.metadata?.sample_type || coa.metadata?.matrix || ''
 
-          const matchesMatrix = matrixTypes.some((mt: string) =>
-            sampleType.toLowerCase().includes(mt.toLowerCase())
+          return matrixTypes.some((mt: string) =>
+            coaMatrix.toLowerCase() === mt.toLowerCase() ||
+            coaMatrix.toLowerCase().includes(mt.toLowerCase())
           )
-
-          const matchesKeyword = keywords.some((kw: string) =>
-            docName.includes(kw.toLowerCase())
-          )
-
-          return matchesMatrix || matchesKeyword
         })
       }
 
