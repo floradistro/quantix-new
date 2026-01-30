@@ -175,12 +175,36 @@ export default function COAPreviewPage() {
         return
       }
       const result = await response.json()
-      if (result.data) setCoa(result.data)
+      if (result.data) {
+        setCoa(result.data)
+        // Track QR scan
+        trackScan(result.data.id, result.data.metadata?.sample_id)
+      }
       else setError('Certificate not found')
     } catch {
       setError('Certificate not found')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const trackScan = async (documentId: string, sampleId: string | undefined) => {
+    if (!sampleId) return
+    try {
+      await fetch('/api/qr/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          qr_code: sampleId,
+          store_id: storeId,
+          document_id: documentId,
+          referrer: document.referrer,
+          user_agent: navigator.userAgent,
+        }),
+      })
+    } catch (err) {
+      // Silent fail - don't disrupt user experience
+      console.debug('Scan tracking failed:', err)
     }
   }
 
@@ -201,13 +225,18 @@ export default function COAPreviewPage() {
   const terpenes = coa?.metadata?.terpenes || {}
   const safetyTests = coa?.metadata?.safety_tests || {}
 
-  // Build cannabinoid array from test_results if cannabinoids is empty
+  // Totals from metadata
+  const thcTotal = coa?.metadata?.thc_total ?? 0
+  const cbdTotal = coa?.metadata?.cbd_total ?? 0
+  const terpenesTotal = coa?.metadata?.terpenes_total ?? 0
+
+  // Build cannabinoid array from structured cannabinoids first
   let cannabinoidsArray = Object.entries(cannabinoids)
     .map(([name, value]) => ({ name, value: value as number }))
     .filter(item => item.value > 0)
     .sort((a, b) => b.value - a.value)
 
-  // If no structured cannabinoids, extract from test_results
+  // If no structured cannabinoids, try test_results
   if (cannabinoidsArray.length === 0 && Object.keys(testResults).length > 0) {
     cannabinoidsArray = Object.entries(testResults)
       .map(([key, val]) => ({
@@ -218,6 +247,13 @@ export default function COAPreviewPage() {
       .sort((a, b) => b.value - a.value)
   }
 
+  // If still no cannabinoids but we have totals, create display cards from totals
+  if (cannabinoidsArray.length === 0 && (thcTotal > 0 || cbdTotal > 0)) {
+    if (thcTotal > 0) cannabinoidsArray.push({ name: 'Total THC', value: thcTotal })
+    if (cbdTotal > 0) cannabinoidsArray.push({ name: 'Total CBD', value: cbdTotal })
+    if (terpenesTotal > 0) cannabinoidsArray.push({ name: 'Terpenes', value: terpenesTotal })
+  }
+
   const terpenesArray = Object.entries(terpenes)
     .map(([name, value]) => ({ name, value: value as number }))
     .filter(item => item.value > 0)
@@ -226,16 +262,17 @@ export default function COAPreviewPage() {
   const safetyArray = Object.entries(safetyTests)
     .map(([name, status]) => ({ name: name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), status: status as string }))
 
+  // Check if we have a status to show as safety
+  const hasStatus = coa?.metadata?.status && !safetyArray.length
+  if (hasStatus && coa?.metadata?.status) {
+    safetyArray.push({ name: 'Overall Status', status: coa.metadata.status })
+  }
+
   // Get top cannabinoids for hero display
   const topCannabinoids = cannabinoidsArray.slice(0, 4)
   const remainingCannabinoids = cannabinoidsArray.slice(4)
   const maxCannabinoid = cannabinoidsArray[0]?.value || 30
   const maxTerpene = terpenesArray[0]?.value || 5
-
-  // Totals
-  const thcTotal = coa?.metadata?.thc_total ?? 0
-  const cbdTotal = coa?.metadata?.cbd_total ?? 0
-  const terpenesTotal = coa?.metadata?.terpenes_total ?? 0
 
   if (loading) {
     return (
@@ -284,7 +321,7 @@ export default function COAPreviewPage() {
       <div className="max-w-6xl mx-auto px-4 py-6">
         {/* Determine if we have test data for left column */}
         {(() => {
-          const hasTestData = topCannabinoids.length > 0 || terpenesArray.length > 0 || safetyArray.length > 0
+          const hasTestData = topCannabinoids.length > 0 || terpenesArray.length > 0 || safetyArray.length > 0 || thcTotal > 0 || cbdTotal > 0
 
           return (
             <div className={`grid grid-cols-1 ${hasTestData ? 'lg:grid-cols-2' : ''} gap-4`}>
