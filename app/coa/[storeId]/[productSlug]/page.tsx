@@ -205,12 +205,10 @@ export default function COAPreviewPage() {
   const testPanels = coa?.metadata?.test_panels || {}
   const activeTests = Object.entries(testPanels).filter(([_, active]) => active).map(([name]) => name)
 
-  const thcTotal = coa?.metadata?.thc_total ?? 0
-  const cbdTotal = coa?.metadata?.cbd_total ?? 0
-  const cannabinoidsTotal = coa?.metadata?.cannabinoids_total ?? 0
-  const terpenesTotal = coa?.metadata?.terpenes_total ?? 0
+  // Get top 3 cannabinoids for hero display - all from real parsed data
+  const topCannabinoids = cannabinoidData.slice(0, 3)
 
-  const hasData = cannabinoidData.length > 0 || terpeneData.length > 0 || thcTotal > 0
+  const hasData = cannabinoidData.length > 0 || terpeneData.length > 0
 
   if (loading) {
     return (
@@ -282,9 +280,9 @@ export default function COAPreviewPage() {
           {/* Left Column - Data & Charts */}
           {hasData && (
             <div className="space-y-3 sm:space-y-6">
-              {/* Potency Summary Card */}
+              {/* Potency Summary Card - Hero Section */}
               <section className="glass-effect rounded-none sm:rounded-2xl p-4 sm:p-6">
-                <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg sm:text-xl font-semibold text-white">Potency</h2>
                   {coa.metadata?.status && (
                     <span className={`px-3 py-1.5 rounded-full text-[13px] font-medium ${
@@ -297,37 +295,60 @@ export default function COAPreviewPage() {
                   )}
                 </div>
 
-                {/* Totals - Large display */}
-                <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-6">
-                  {thcTotal > 0 && (
-                    <div className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/5 rounded-2xl p-4 sm:p-5 border border-emerald-500/20">
-                      <p className="text-[11px] sm:text-xs text-emerald-400/70 uppercase tracking-wider font-medium mb-1">Total THC</p>
-                      <p className="text-3xl sm:text-4xl font-bold text-emerald-400 tabular-nums">{thcTotal.toFixed(1)}<span className="text-xl sm:text-2xl">%</span></p>
+                {/* Hero Cannabinoid Stats - Show top compounds dynamically */}
+                {topCannabinoids.length > 0 && (
+                  <div className="mb-6">
+                    {/* Primary cannabinoid - Large display */}
+                    <div className="text-center mb-6">
+                      <p className="text-sm text-white/50 mb-1">{topCannabinoids[0].name}</p>
+                      <p className="text-5xl sm:text-6xl font-semibold text-white tracking-tight tabular-nums">
+                        {topCannabinoids[0].percent.toFixed(1)}
+                        <span className="text-2xl sm:text-3xl text-white/60">%</span>
+                      </p>
                     </div>
-                  )}
-                  {cannabinoidsTotal > 0 && (
-                    <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/5 rounded-2xl p-4 sm:p-5 border border-purple-500/20">
-                      <p className="text-[11px] sm:text-xs text-purple-400/70 uppercase tracking-wider font-medium mb-1">Total Cannabinoids</p>
-                      <p className="text-3xl sm:text-4xl font-bold text-purple-400 tabular-nums">{cannabinoidsTotal.toFixed(1)}<span className="text-xl sm:text-2xl">%</span></p>
-                    </div>
-                  )}
-                  {cbdTotal > 0 && (
-                    <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/5 rounded-2xl p-4 sm:p-5 border border-blue-500/20">
-                      <p className="text-[11px] sm:text-xs text-blue-400/70 uppercase tracking-wider font-medium mb-1">Total CBD</p>
-                      <p className="text-3xl sm:text-4xl font-bold text-blue-400 tabular-nums">{cbdTotal.toFixed(1)}<span className="text-xl sm:text-2xl">%</span></p>
-                    </div>
-                  )}
-                  {terpenesTotal > 0 && (
-                    <div className="bg-gradient-to-br from-orange-500/20 to-orange-600/5 rounded-2xl p-4 sm:p-5 border border-orange-500/20">
-                      <p className="text-[11px] sm:text-xs text-orange-400/70 uppercase tracking-wider font-medium mb-1">Terpenes</p>
-                      <p className="text-3xl sm:text-4xl font-bold text-orange-400 tabular-nums">{terpenesTotal.toFixed(2)}<span className="text-xl sm:text-2xl">%</span></p>
-                    </div>
-                  )}
-                </div>
+
+                    {/* Secondary cannabinoids */}
+                    {topCannabinoids.length > 1 && (
+                      <div className={`grid ${topCannabinoids.length > 2 ? 'grid-cols-2' : 'grid-cols-1'} gap-4 pt-5 border-t border-white/[0.08]`}>
+                        {topCannabinoids.slice(1).map((c) => (
+                          <div key={c.name} className="text-center">
+                            <p className="text-xs text-white/40 mb-0.5">{c.name}</p>
+                            <p className="text-2xl sm:text-3xl font-medium text-white/90 tabular-nums">
+                              {c.percent.toFixed(1)}
+                              <span className="text-base text-white/40">%</span>
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Summary row - computed from actual data */}
+                {(cannabinoidData.length > 0 || terpeneData.length > 0) && (
+                  <div className="flex items-center justify-around py-4 border-t border-white/[0.08]">
+                    {cannabinoidData.length > 0 && (
+                      <div className="text-center">
+                        <p className="text-[10px] sm:text-xs text-white/40 uppercase tracking-wide">Cannabinoids</p>
+                        <p className="text-lg sm:text-xl font-medium text-white/80 tabular-nums">
+                          {cannabinoidData.reduce((sum, c) => sum + c.percent, 0).toFixed(1)}%
+                        </p>
+                      </div>
+                    )}
+                    {terpeneData.length > 0 && (
+                      <div className="text-center">
+                        <p className="text-[10px] sm:text-xs text-white/40 uppercase tracking-wide">Terpenes</p>
+                        <p className="text-lg sm:text-xl font-medium text-white/80 tabular-nums">
+                          {terpeneData.reduce((sum: number, t: any) => sum + t.percent, 0).toFixed(2)}%
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Pie Chart */}
                 {pieData.length > 0 && (
-                  <div className="h-52 sm:h-56">
+                  <div className="h-52 sm:h-56 mt-4">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -533,10 +554,10 @@ export default function COAPreviewPage() {
                   </button>
                 </div>
               </div>
-              {/* PDF embed with proper aspect ratio for letter-size pages */}
-              <div className="relative w-full bg-neutral-200" style={{ aspectRatio: '8.5/11', maxHeight: '85vh' }}>
+              {/* PDF embed - scrollable for multi-page documents */}
+              <div className="relative w-full bg-neutral-200" style={{ height: '70vh', minHeight: '500px' }}>
                 <iframe
-                  src={`/api/pdf-proxy?url=${encodeURIComponent(coa.file_url)}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`}
+                  src={`/api/pdf-proxy?url=${encodeURIComponent(coa.file_url)}#toolbar=1&navpanes=1&scrollbar=1&view=FitW`}
                   className="absolute inset-0 w-full h-full"
                   title="Certificate PDF"
                   style={{ border: 'none' }}
