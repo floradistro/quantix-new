@@ -9,6 +9,7 @@ import {
   BadgeCheck, Hash, Beaker, X, TestTube, Dna, ChevronRight
 } from 'lucide-react'
 import Logo from '@/app/components/Logo'
+import PDFViewer from '@/app/components/PDFViewer'
 import {
   PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
   Tooltip
@@ -555,21 +556,12 @@ export default function COAPreviewPage() {
                 </div>
               </div>
 
-              {/* Mobile: Show open button since mobile browsers don't handle PDF iframes well */}
-              <div className="sm:hidden p-6 flex flex-col items-center justify-center gap-4 bg-neutral-100">
-                <div className="w-16 h-16 rounded-2xl bg-white/80 flex items-center justify-center shadow-sm">
-                  <FileText className="w-8 h-8 text-neutral-400" />
-                </div>
-                <p className="text-sm text-neutral-500 text-center">Tap to view the full certificate document</p>
-                <button
-                  onClick={() => coa.file_url && window.open(coa.file_url, '_blank')}
-                  className="min-h-[48px] px-6 bg-[#0071e3] hover:bg-[#0077ed] active:bg-[#006edb] rounded-full text-white text-[15px] font-medium transition-all duration-200"
-                >
-                  Open PDF
-                </button>
+              {/* Mobile: Render all PDF pages inline with PDF.js */}
+              <div className="sm:hidden">
+                <PDFViewer url={coa.file_url} className="max-h-[80vh] overflow-y-auto" />
               </div>
 
-              {/* Desktop: Full PDF embed - scrollable for multi-page documents */}
+              {/* Desktop: Full PDF embed with native viewer */}
               <div className="hidden sm:block relative w-full bg-neutral-200" style={{ height: '70vh', minHeight: '500px' }}>
                 <iframe
                   src={`/api/pdf-proxy?url=${encodeURIComponent(coa.file_url)}#toolbar=1&navpanes=1&scrollbar=1&view=FitW`}
