@@ -47,13 +47,6 @@ export default function ContactPage() {
                 </div>
 
                 <div className="glass-effect p-8 rounded-3xl depth-1">
-                  <h3 className="text-2xl font-bold text-white mb-3">Phone</h3>
-                  <a href="tel:+19195550147" className="text-xl text-white/70 hover:text-white transition-colors">
-                    (919) 555-0147
-                  </a>
-                </div>
-
-                <div className="glass-effect p-8 rounded-3xl depth-1">
                   <h3 className="text-2xl font-bold text-white mb-3">Hours</h3>
                   <p className="text-xl text-white/70">
                     Monday - Friday: 9am - 6pm EST<br />
