@@ -247,8 +247,8 @@ export default function COAPreviewPage() {
   return (
     <main className="min-h-screen bg-background">
       {/* Header - Apple style sticky nav */}
-      <header className="border-b border-white/[0.08] bg-[#1d1d1f]/80 backdrop-blur-2xl backdrop-saturate-150 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-5 sm:px-6">
+      <header className="border-b border-white/10 bg-surface/80 backdrop-blur-2xl backdrop-saturate-150 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="h-14 sm:h-16 flex items-center justify-between">
             <div className="flex items-center gap-4 min-w-0">
               <Logo size="sm" showText={false} href="/" />
@@ -276,14 +276,14 @@ export default function COAPreviewPage() {
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-5 sm:px-6 py-8 sm:py-10">
-        <div className={`grid grid-cols-1 ${hasData ? 'lg:grid-cols-2' : ''} gap-5 sm:gap-6`}>
+      <div className="max-w-6xl mx-auto px-0 sm:px-6 py-4 sm:py-10">
+        <div className={`grid grid-cols-1 ${hasData ? 'lg:grid-cols-2' : ''} gap-3 sm:gap-6`}>
 
           {/* Left Column - Data & Charts */}
           {hasData && (
-            <div className="space-y-5 sm:space-y-6">
+            <div className="space-y-3 sm:space-y-6">
               {/* Potency Summary Card */}
-              <section className="bg-[#1d1d1f] rounded-2xl sm:rounded-3xl p-5 sm:p-6 border border-white/[0.08]">
+              <section className="glass-effect rounded-none sm:rounded-2xl p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-5">
                   <h2 className="text-lg sm:text-xl font-semibold text-white">Potency</h2>
                   {coa.metadata?.status && (
@@ -374,7 +374,7 @@ export default function COAPreviewPage() {
 
               {/* Cannabinoid Breakdown */}
               {cannabinoidData.length > 0 && (
-                <section className="bg-[#1d1d1f] rounded-2xl sm:rounded-3xl p-5 sm:p-6 border border-white/[0.08]">
+                <section className="glass-effect rounded-none sm:rounded-2xl p-4 sm:p-6">
                   <h2 className="text-lg sm:text-xl font-semibold text-white mb-5">Cannabinoids</h2>
 
                   <div className="h-52 sm:h-64 -mx-2">
@@ -449,7 +449,7 @@ export default function COAPreviewPage() {
 
               {/* Terpenes */}
               {terpeneData.length > 0 && (
-                <section className="bg-[#1d1d1f] rounded-2xl sm:rounded-3xl p-5 sm:p-6 border border-white/[0.08]">
+                <section className="glass-effect rounded-none sm:rounded-2xl p-4 sm:p-6">
                   <h2 className="text-lg sm:text-xl font-semibold text-white mb-5">Terpenes</h2>
                   <div className="space-y-4">
                     {terpeneData.slice(0, 8).map((t: any) => (
@@ -472,7 +472,7 @@ export default function COAPreviewPage() {
 
               {/* Test Panels */}
               {activeTests.length > 0 && (
-                <section className="bg-[#1d1d1f] rounded-2xl sm:rounded-3xl p-5 sm:p-6 border border-white/[0.08]">
+                <section className="glass-effect rounded-none sm:rounded-2xl p-4 sm:p-6">
                   <h2 className="text-lg sm:text-xl font-semibold text-white mb-4">Testing Panels</h2>
                   <div className="flex flex-wrap gap-2.5">
                     {activeTests.map(test => (
@@ -493,9 +493,9 @@ export default function COAPreviewPage() {
           )}
 
           {/* Right Column - Details & PDF */}
-          <div className="space-y-5 sm:space-y-6">
+          <div className="space-y-3 sm:space-y-6">
             {/* Certificate Details */}
-            <section className="bg-[#1d1d1f] rounded-2xl sm:rounded-3xl p-5 sm:p-6 border border-white/[0.08]">
+            <section className="glass-effect rounded-none sm:rounded-2xl p-4 sm:p-6">
               <h2 className="text-lg sm:text-xl font-semibold text-white mb-4">Details</h2>
               <div className="space-y-0">
                 <DetailRow label="Product" value={productName} />
@@ -515,8 +515,8 @@ export default function COAPreviewPage() {
             </section>
 
             {/* PDF Viewer */}
-            <section className="bg-[#1d1d1f] rounded-2xl sm:rounded-3xl overflow-hidden border border-white/[0.08]">
-              <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/[0.08]">
+            <section className="glass-effect rounded-none sm:rounded-2xl overflow-hidden">
+              <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-white/10">
                 <h2 className="text-base sm:text-lg font-semibold text-white">Document</h2>
                 <button
                   onClick={() => setIsFullscreen(true)}
@@ -538,12 +538,9 @@ export default function COAPreviewPage() {
         </div>
 
         {/* Footer */}
-        <footer className="mt-10 sm:mt-12 text-center">
-          <p className="text-[13px] text-white/30">
-            Certificate issued by {coa.metadata?.lab_name || 'accredited laboratory'}
-          </p>
-          <p className="text-[11px] text-white/20 mt-1">
-            Verified by Quantix Analytics
+        <footer className="mt-6 sm:mt-12 text-center px-4">
+          <p className="text-xs text-white/30">
+            Certificate issued by {coa.metadata?.lab_name || 'accredited laboratory'} · Verified by Quantix Analytics
           </p>
         </footer>
       </div>
