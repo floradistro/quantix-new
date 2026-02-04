@@ -224,11 +224,11 @@ export default function DashboardPage() {
       console.log('📂 Loading profiles for store:', storeId)
       setLoadingProfiles(true)
 
-      // Get all profiles for this store
+      // Get all profiles for this store (client_store_id is the customer's store)
       const { data: storeProfiles, error: profilesError } = await supabase
         .from('document_profiles')
         .select('id, name')
-        .eq('store_id', storeId)
+        .eq('client_store_id', storeId)
 
       if (profilesError) {
         console.error('❌ Error loading profiles:', profilesError)
