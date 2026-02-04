@@ -228,17 +228,20 @@ export default function DashboardPage() {
         .from('document_profiles')
         .select('name, sample_type')
         .eq('store_id', storeId)
-        .eq('is_active', true)
+
+      if (profilesError) {
+        console.error('❌ Error loading profiles:', profilesError)
+      }
 
       // Create mapping from sample_type to profile name
       const sampleTypeToProfileName: Record<string, string> = {}
       profiles?.forEach((p: any) => {
-        if (p.sample_type) {
+        if (p.sample_type && p.name) {
           sampleTypeToProfileName[p.sample_type] = p.name
         }
       })
 
-      console.log('📂 Profile mapping:', sampleTypeToProfileName)
+      console.log('📂 Profiles loaded:', profiles?.length, 'Profile mapping:', sampleTypeToProfileName)
 
       // Get all documents with their profile info via the data field
       const { data: docs, error: docsError } = await supabase
