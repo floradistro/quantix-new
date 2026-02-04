@@ -92,8 +92,8 @@ interface Store {
   slug: string
 }
 
-interface MatrixCategory {
-  sampleType: string
+interface ProfileCategory {
+  profileName: string
   count: number
 }
 
@@ -103,7 +103,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [stores, setStores] = useState<Store[]>([])
   const [selectedStore, setSelectedStore] = useState<string>('all')
-  const [matrixCategories, setMatrixCategories] = useState<MatrixCategory[]>([])
+  const [profileCategories, setProfileCategories] = useState<ProfileCategory[]>([])
   const [coas, setCoas] = useState<COA[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
@@ -114,6 +114,7 @@ export default function DashboardPage() {
   const [selectedCOAs, setSelectedCOAs] = useState<Set<string>>(new Set())
   const [isSelectionMode, setIsSelectionMode] = useState(false)
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null)
+  const [loadingProfiles, setLoadingProfiles] = useState(false)
   const ITEMS_PER_PAGE = 50
 
   useEffect(() => {
@@ -129,7 +130,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user && selectedStore && selectedStore !== 'all') {
       setPage(1)
-      loadMatrixTypesForStore(selectedStore)
+      loadProfilesForStore(selectedStore)
     }
   }, [selectedStore, user])
 
@@ -217,62 +218,70 @@ export default function DashboardPage() {
     }
   }
 
-  const loadMatrixTypesForStore = async (storeId: string) => {
+  const loadProfilesForStore = async (storeId: string) => {
     try {
-      console.log('📂 Loading matrix types for store:', storeId)
+      console.log('📂 Loading profiles for store:', storeId)
+      setLoadingProfiles(true)
 
-      // Get all COAs for this store
-      const { data: allCoas, error: coasError } = await supabase
+      // Get all documents with their profile info via the data field
+      const { data: docs, error: docsError } = await supabase
         .from('store_documents')
         .select('id, data')
         .eq('store_id', storeId)
         .eq('is_active', true)
 
-      if (coasError) {
-        console.error('❌ Error loading COAs:', coasError)
+      if (docsError) {
+        console.error('❌ Error loading documents:', docsError)
+        setLoadingProfiles(false)
         return
       }
 
-      // Extract unique sampleTypes from COA data and count them
-      const sampleTypeCounts: Record<string, number> = {}
-
-      allCoas?.forEach((coa: any) => {
-        const sampleType = coa.data?.sampleType
-        if (sampleType) {
-          sampleTypeCounts[sampleType] = (sampleTypeCounts[sampleType] || 0) + 1
+      // Count documents by profileName (stored in data field by COA generator)
+      const profileCounts: Record<string, number> = {}
+      docs?.forEach((doc: any) => {
+        // Try profileName first, then fall back to sampleType for backwards compatibility
+        const profileName = doc.data?.profileName || doc.data?.sampleType
+        if (profileName) {
+          profileCounts[profileName] = (profileCounts[profileName] || 0) + 1
         }
       })
 
-      // Convert to array and sort by count (descending)
-      const matrixTypes: MatrixCategory[] = Object.entries(sampleTypeCounts)
-        .map(([sampleType, count]) => ({ sampleType, count }))
+      // Convert to array and sort by count
+      const profileTypes: ProfileCategory[] = Object.entries(profileCounts)
+        .map(([profileName, count]) => ({ profileName, count }))
         .sort((a, b) => b.count - a.count)
 
-      console.log('📂 Found matrix types:', matrixTypes)
+      console.log('📂 Found profiles:', profileTypes)
 
-      // If no matrix types found but we have COAs, add "All Documents"
-      if (matrixTypes.length === 0 && (allCoas?.length || 0) > 0) {
-        matrixTypes.push({
-          sampleType: 'All Documents',
-          count: allCoas?.length || 0
+      // If no profiles found but we have documents, show all
+      if (profileTypes.length === 0 && (docs?.length || 0) > 0) {
+        profileTypes.push({
+          profileName: 'All Documents',
+          count: docs?.length || 0
         })
       }
 
-      setMatrixCategories(matrixTypes)
+      setProfileCategories(profileTypes)
       setSelectedCategory(null)
       setCoas([])
+      setLoadingProfiles(false)
     } catch (err) {
-      console.error('❌ Error loading matrix types:', err)
+      console.error('❌ Error loading profiles:', err)
+      setLoadingProfiles(false)
     }
   }
 
-  const loadCOAsForStore = async (storeId: string, pageNum: number = 1, sampleTypeFilter?: string | null) => {
+  const loadCOAsForStore = async (storeId: string, pageNum: number = 1, profileFilter?: string | null) => {
     try {
-      console.log('🔍 Loading COAs for store:', storeId, 'page:', pageNum, 'sampleType:', sampleTypeFilter)
+      console.log('🔍 Loading COAs for store:', storeId, 'page:', pageNum, 'profile:', profileFilter)
       setIsLoadingMore(true)
 
-      // Query all COAs for the store
-      const { data: allCoas, error: coasError } = await supabase
+      // Calculate pagination range
+      const from = (pageNum - 1) * ITEMS_PER_PAGE
+      const to = from + ITEMS_PER_PAGE - 1
+
+      // Build query with database-level filtering
+      let query = supabase
         .from('store_documents')
         .select(`
           id,
@@ -286,10 +295,21 @@ export default function DashboardPage() {
           thumbnail_url,
           product_id,
           products(id, name, slug, primary_category_id)
-        `)
+        `, { count: 'exact' })
         .eq('store_id', storeId)
         .eq('is_active', true)
         .order('created_at', { ascending: false })
+
+      // Filter by profile name at database level
+      // Try profileName first, but also check sampleType for backwards compatibility
+      if (profileFilter && profileFilter !== 'All Documents') {
+        query = query.or(`data->>profileName.eq.${profileFilter},data->>sampleType.eq.${profileFilter}`)
+      }
+
+      // Apply pagination at database level
+      query = query.range(from, to)
+
+      const { data: paginatedCoas, error: coasError, count } = await query
 
       if (coasError) {
         console.error('❌ Error loading COAs:', coasError)
@@ -297,31 +317,15 @@ export default function DashboardPage() {
         return
       }
 
-      // Filter by sampleType if selected
-      let filteredCoas = allCoas || []
-
-      if (sampleTypeFilter && sampleTypeFilter !== 'All Documents') {
-        filteredCoas = filteredCoas.filter((coa: any) => {
-          const coaSampleType = coa.data?.sampleType || ''
-          return coaSampleType === sampleTypeFilter
-        })
-      }
-
-      // Paginate
-      const from = (pageNum - 1) * ITEMS_PER_PAGE
-      const to = from + ITEMS_PER_PAGE
-      const paginatedCoas = filteredCoas.slice(from, to)
-      const count = filteredCoas.length
-
-      console.log('📄 Loaded', paginatedCoas.length, 'COAs for page (total:', count, ')')
+      console.log('📄 Loaded', paginatedCoas?.length || 0, 'COAs for page (total:', count, ')')
 
       if (pageNum === 1) {
-        setCoas(paginatedCoas as any)
+        setCoas(paginatedCoas as any || [])
       } else {
-        setCoas(prev => [...prev, ...(paginatedCoas as any)])
+        setCoas(prev => [...prev, ...(paginatedCoas as any || [])])
       }
 
-      setHasMore(count > pageNum * ITEMS_PER_PAGE)
+      setHasMore((count || 0) > pageNum * ITEMS_PER_PAGE)
       setIsLoadingMore(false)
     } catch (err) {
       console.error('❌ Error loading COAs:', err)
@@ -462,8 +466,8 @@ export default function DashboardPage() {
     window.URL.revokeObjectURL(url)
   }
 
-  // Use matrix types extracted from COA data
-  const categories = matrixCategories
+  // Use profile categories
+  const categories = profileCategories
 
   // Filter COAs by search and test type (category filtering is done at query level)
   const filteredCOAs = coas.filter(coa => {
@@ -541,18 +545,26 @@ export default function DashboardPage() {
           <div className="flex items-center justify-center mb-6">
             <Logo size="lg" showText={false} />
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 text-center">Select Matrix Type</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 text-center">Select Profile</h2>
           <div className="max-w-2xl mx-auto space-y-2">
-            {categories.map((category) => (
+            {loadingProfiles ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="w-8 h-8 border-2 border-[#0071e3] border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : categories.length === 0 ? (
+              <div className="text-center py-8 text-white/60">
+                <p>No profiles found for this store</p>
+              </div>
+            ) : categories.map((category) => (
               <button
-                key={category.sampleType}
-                onClick={() => setSelectedCategory(category.sampleType)}
+                key={category.profileName}
+                onClick={() => setSelectedCategory(category.profileName)}
                 className="group w-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#0071e3]/50 rounded-lg p-3 sm:p-4 transition-all duration-200 hover:translate-x-1 flex items-center justify-between"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-1.5 h-1.5 rounded-full bg-[#0071e3] group-hover:scale-125 transition-transform"></div>
                   <h3 className="text-white font-medium text-sm sm:text-base group-hover:text-[#0071e3] transition-colors">
-                    {category.sampleType}
+                    {category.profileName}
                   </h3>
                 </div>
                 <div className="flex items-center gap-2 sm:gap-3">
