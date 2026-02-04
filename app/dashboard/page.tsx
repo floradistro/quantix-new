@@ -92,8 +92,9 @@ interface Store {
   slug: string
 }
 
-interface ProfileCategory {
-  profileName: string
+interface Profile {
+  id: string
+  name: string
   count: number
 }
 
@@ -103,7 +104,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [stores, setStores] = useState<Store[]>([])
   const [selectedStore, setSelectedStore] = useState<string>('all')
-  const [profileCategories, setProfileCategories] = useState<ProfileCategory[]>([])
+  const [profiles, setProfiles] = useState<Profile[]>([])
   const [coas, setCoas] = useState<COA[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
@@ -223,68 +224,51 @@ export default function DashboardPage() {
       console.log('📂 Loading profiles for store:', storeId)
       setLoadingProfiles(true)
 
-      // Get document profiles for this store to map sample_type -> profile name
-      const { data: profiles, error: profilesError } = await supabase
+      // Get all profiles for this store
+      const { data: storeProfiles, error: profilesError } = await supabase
         .from('document_profiles')
-        .select('name, sample_type')
+        .select('id, name')
         .eq('store_id', storeId)
 
       if (profilesError) {
         console.error('❌ Error loading profiles:', profilesError)
+        setLoadingProfiles(false)
+        return
       }
 
-      // Create mapping from sample_type to profile name
-      const sampleTypeToProfileName: Record<string, string> = {}
-      profiles?.forEach((p: any) => {
-        if (p.sample_type && p.name) {
-          sampleTypeToProfileName[p.sample_type] = p.name
-        }
-      })
-
-      console.log('📂 Profiles loaded:', profiles?.length, 'Profile mapping:', sampleTypeToProfileName)
-
-      // Get all documents with their profile info via the data field
+      // Get document counts per profile_id
       const { data: docs, error: docsError } = await supabase
         .from('store_documents')
-        .select('id, data')
+        .select('data')
         .eq('store_id', storeId)
         .eq('is_active', true)
 
       if (docsError) {
         console.error('❌ Error loading documents:', docsError)
-        setLoadingProfiles(false)
-        return
       }
 
-      // Count documents by profile name
+      // Count documents by profile_id
       const profileCounts: Record<string, number> = {}
       docs?.forEach((doc: any) => {
-        // Try profileName first, then map sampleType to profile name
-        let profileName = doc.data?.profileName
-        if (!profileName && doc.data?.sampleType) {
-          profileName = sampleTypeToProfileName[doc.data.sampleType] || doc.data.sampleType
-        }
-        if (profileName) {
-          profileCounts[profileName] = (profileCounts[profileName] || 0) + 1
+        const profileId = doc.data?.profile_id
+        if (profileId) {
+          profileCounts[profileId] = (profileCounts[profileId] || 0) + 1
         }
       })
 
-      // Convert to array and sort by count
-      const profileTypes: ProfileCategory[] = Object.entries(profileCounts)
-        .map(([profileName, count]) => ({ profileName, count }))
+      // Build profile list with counts
+      const profileList: Profile[] = (storeProfiles || [])
+        .map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          count: profileCounts[p.id] || 0
+        }))
+        .filter(p => p.count > 0)
         .sort((a, b) => b.count - a.count)
 
-      console.log('📂 Found profiles:', profileTypes)
+      console.log('📂 Profiles with documents:', profileList)
 
-      // If no profiles found but we have documents, show all
-      if (profileTypes.length === 0 && (docs?.length || 0) > 0) {
-        profileTypes.push({
-          profileName: 'All Documents',
-          count: docs?.length || 0
-        })
-      }
-
-      setProfileCategories(profileTypes)
+      setProfiles(profileList)
       setSelectedCategory(null)
       setCoas([])
       setLoadingProfiles(false)
@@ -294,31 +278,16 @@ export default function DashboardPage() {
     }
   }
 
-  const loadCOAsForStore = async (storeId: string, pageNum: number = 1, profileFilter?: string | null) => {
+  const loadCOAsForStore = async (storeId: string, pageNum: number = 1, profileId?: string | null) => {
     try {
-      console.log('🔍 Loading COAs for store:', storeId, 'page:', pageNum, 'profile:', profileFilter)
+      console.log('🔍 Loading COAs for store:', storeId, 'page:', pageNum, 'profileId:', profileId)
       setIsLoadingMore(true)
-
-      // If filtering by profile name, we need to find the corresponding sample_type
-      let sampleTypeFilter: string | null = null
-      if (profileFilter && profileFilter !== 'All Documents') {
-        // Get the profile to find its sample_type
-        const { data: profile } = await supabase
-          .from('document_profiles')
-          .select('sample_type')
-          .eq('store_id', storeId)
-          .eq('name', profileFilter)
-          .single()
-
-        sampleTypeFilter = profile?.sample_type || profileFilter
-        console.log('📂 Mapped profile to sample_type:', profileFilter, '->', sampleTypeFilter)
-      }
 
       // Calculate pagination range
       const from = (pageNum - 1) * ITEMS_PER_PAGE
       const to = from + ITEMS_PER_PAGE - 1
 
-      // Build query with database-level filtering
+      // Build query
       let query = supabase
         .from('store_documents')
         .select(`
@@ -338,12 +307,12 @@ export default function DashboardPage() {
         .eq('is_active', true)
         .order('created_at', { ascending: false })
 
-      // Filter by sample_type (which we mapped from profile name)
-      if (sampleTypeFilter) {
-        query = query.eq('data->>sampleType', sampleTypeFilter)
+      // Filter by profile_id
+      if (profileId) {
+        query = query.eq('data->>profile_id', profileId)
       }
 
-      // Apply pagination at database level
+      // Apply pagination
       query = query.range(from, to)
 
       const { data: paginatedCoas, error: coasError, count } = await query
@@ -503,8 +472,8 @@ export default function DashboardPage() {
     window.URL.revokeObjectURL(url)
   }
 
-  // Use profile categories
-  const categories = profileCategories
+  // Use profiles from store
+  const categories = profiles
 
   // Filter COAs by search and test type (category filtering is done at query level)
   const filteredCOAs = coas.filter(coa => {
@@ -592,21 +561,21 @@ export default function DashboardPage() {
               <div className="text-center py-8 text-white/60">
                 <p>No profiles found for this store</p>
               </div>
-            ) : categories.map((category) => (
+            ) : categories.map((profile) => (
               <button
-                key={category.profileName}
-                onClick={() => setSelectedCategory(category.profileName)}
+                key={profile.id}
+                onClick={() => setSelectedCategory(profile.id)}
                 className="group w-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#0071e3]/50 rounded-lg p-3 sm:p-4 transition-all duration-200 hover:translate-x-1 flex items-center justify-between"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-1.5 h-1.5 rounded-full bg-[#0071e3] group-hover:scale-125 transition-transform"></div>
                   <h3 className="text-white font-medium text-sm sm:text-base group-hover:text-[#0071e3] transition-colors">
-                    {category.profileName}
+                    {profile.name}
                   </h3>
                 </div>
                 <div className="flex items-center gap-2 sm:gap-3">
                   <span className="text-white/60 text-xs sm:text-sm">
-                    {category.count} {category.count === 1 ? 'certificate' : 'certificates'}
+                    {profile.count} {profile.count === 1 ? 'certificate' : 'certificates'}
                   </span>
                   <span className="text-white/40 group-hover:text-[#0071e3] transition-colors text-sm">→</span>
                 </div>
@@ -676,7 +645,7 @@ export default function DashboardPage() {
               {/* Category Title */}
               <div className="flex items-center gap-2">
                 <h2 className="text-sm sm:text-base font-semibold text-white">
-                  {selectedCategory || 'Products'}
+                  {profiles.find(p => p.id === selectedCategory)?.name || 'Products'}
                 </h2>
                 <span className="text-[10px] sm:text-xs text-white/50">
                   {filteredCOAs.length}
