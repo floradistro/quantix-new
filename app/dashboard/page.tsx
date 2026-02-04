@@ -223,6 +223,23 @@ export default function DashboardPage() {
       console.log('📂 Loading profiles for store:', storeId)
       setLoadingProfiles(true)
 
+      // Get document profiles for this store to map sample_type -> profile name
+      const { data: profiles, error: profilesError } = await supabase
+        .from('document_profiles')
+        .select('name, sample_type')
+        .eq('store_id', storeId)
+        .eq('is_active', true)
+
+      // Create mapping from sample_type to profile name
+      const sampleTypeToProfileName: Record<string, string> = {}
+      profiles?.forEach((p: any) => {
+        if (p.sample_type) {
+          sampleTypeToProfileName[p.sample_type] = p.name
+        }
+      })
+
+      console.log('📂 Profile mapping:', sampleTypeToProfileName)
+
       // Get all documents with their profile info via the data field
       const { data: docs, error: docsError } = await supabase
         .from('store_documents')
@@ -236,11 +253,14 @@ export default function DashboardPage() {
         return
       }
 
-      // Count documents by profileName (stored in data field by COA generator)
+      // Count documents by profile name
       const profileCounts: Record<string, number> = {}
       docs?.forEach((doc: any) => {
-        // Try profileName first, then fall back to sampleType for backwards compatibility
-        const profileName = doc.data?.profileName || doc.data?.sampleType
+        // Try profileName first, then map sampleType to profile name
+        let profileName = doc.data?.profileName
+        if (!profileName && doc.data?.sampleType) {
+          profileName = sampleTypeToProfileName[doc.data.sampleType] || doc.data.sampleType
+        }
         if (profileName) {
           profileCounts[profileName] = (profileCounts[profileName] || 0) + 1
         }
@@ -276,6 +296,21 @@ export default function DashboardPage() {
       console.log('🔍 Loading COAs for store:', storeId, 'page:', pageNum, 'profile:', profileFilter)
       setIsLoadingMore(true)
 
+      // If filtering by profile name, we need to find the corresponding sample_type
+      let sampleTypeFilter: string | null = null
+      if (profileFilter && profileFilter !== 'All Documents') {
+        // Get the profile to find its sample_type
+        const { data: profile } = await supabase
+          .from('document_profiles')
+          .select('sample_type')
+          .eq('store_id', storeId)
+          .eq('name', profileFilter)
+          .single()
+
+        sampleTypeFilter = profile?.sample_type || profileFilter
+        console.log('📂 Mapped profile to sample_type:', profileFilter, '->', sampleTypeFilter)
+      }
+
       // Calculate pagination range
       const from = (pageNum - 1) * ITEMS_PER_PAGE
       const to = from + ITEMS_PER_PAGE - 1
@@ -300,10 +335,9 @@ export default function DashboardPage() {
         .eq('is_active', true)
         .order('created_at', { ascending: false })
 
-      // Filter by profile name at database level
-      // Try profileName first, but also check sampleType for backwards compatibility
-      if (profileFilter && profileFilter !== 'All Documents') {
-        query = query.or(`data->>profileName.eq.${profileFilter},data->>sampleType.eq.${profileFilter}`)
+      // Filter by sample_type (which we mapped from profile name)
+      if (sampleTypeFilter) {
+        query = query.eq('data->>sampleType', sampleTypeFilter)
       }
 
       // Apply pagination at database level
