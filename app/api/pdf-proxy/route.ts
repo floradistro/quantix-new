@@ -18,9 +18,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch the PDF from Supabase
-    const response = await fetch(url, {
-      next: { revalidate: 86400 } // Cache fetch for 24 hours
-    })
+    const response = await fetch(url)
 
     if (!response.ok) {
       return NextResponse.json({ error: 'Failed to fetch PDF' }, { status: response.status })
@@ -34,7 +32,7 @@ export async function GET(request: NextRequest) {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': 'inline',
-        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Cache-Control': 'no-store',
         'Access-Control-Allow-Origin': '*',
       },
     })

@@ -3,8 +3,8 @@ import { createClient } from '@supabase/supabase-js'
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs'
-// Cache COA responses for 1 hour - data rarely changes
-export const revalidate = 3600
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export async function GET(
   request: NextRequest,
@@ -224,11 +224,7 @@ export async function GET(
     const coa = bestMatch
     console.log(`[COA Matching] Returning: ${coa.document_name} (score: ${matchScore})`)
 
-    return NextResponse.json({ data: coa }, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-      }
-    })
+    return NextResponse.json({ data: coa })
   } catch (error: any) {
     console.error('[COA] Error fetching COA:', error)
     console.error('[COA] Error message:', error?.message)
