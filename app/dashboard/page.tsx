@@ -1,88 +1,43 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { FileText, Download, Calendar, Search, Filter, LogOut, Share2, CheckCircle2, Circle, X } from 'lucide-react'
 import { supabase, QUANTIX_STORE_ID } from '@/lib/supabase'
 import Logo from '@/app/components/Logo'
 
-// Global load queue - only allow N iframes to load at once
-const loadQueue = {
-  active: 0,
-  max: 4,
-  waiting: [] as (() => void)[],
-  acquire() {
-    return new Promise<void>((resolve) => {
-      if (this.active < this.max) {
-        this.active++
-        resolve()
-      } else {
-        this.waiting.push(resolve)
-      }
-    })
-  },
-  release() {
-    this.active--
-    const next = this.waiting.shift()
-    if (next) {
-      this.active++
-      next()
-    }
-  }
-}
+// COA card preview - uses stored thumbnail image, falls back to placeholder
+function COAPreview({ thumbnailUrl, title }: { thumbnailUrl?: string; title: string }) {
+  const [loaded, setLoaded] = useState(false)
+  const [error, setError] = useState(false)
 
-// PDF Preview with throttled loading - only loads when visible, max 4 concurrent
-function PDFPreview({ pdfUrl, title }: { pdfUrl: string; title: string }) {
-  const [shouldLoad, setShouldLoad] = useState(false)
-  const [isLoaded, setIsLoaded] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!containerRef.current) return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && !shouldLoad) {
-            // Wait for a queue slot before loading
-            loadQueue.acquire().then(() => setShouldLoad(true))
-            observer.disconnect()
-          }
-        })
-      },
-      { rootMargin: '200px', threshold: 0.01 }
+  if (!thumbnailUrl || error) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-white to-gray-50">
+        <FileText className="w-10 h-10 text-gray-300 mb-2" />
+        <span className="text-[9px] text-gray-400 font-medium uppercase tracking-wider px-2 text-center truncate max-w-full">
+          {title?.slice(0, 30) || 'COA'}
+        </span>
+      </div>
     )
-
-    observer.observe(containerRef.current)
-    return () => observer.disconnect()
-  }, [shouldLoad])
-
-  const handleLoad = useCallback(() => {
-    setIsLoaded(true)
-    loadQueue.release()
-  }, [])
+  }
 
   return (
-    <div ref={containerRef} className="w-full h-full relative overflow-hidden bg-white">
-      {!isLoaded && (
+    <div className="w-full h-full relative bg-white">
+      {!loaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-          <FileText className={`w-12 h-12 text-gray-300 ${shouldLoad && !isLoaded ? 'animate-pulse' : ''}`} />
+          <FileText className="w-10 h-10 text-gray-300 animate-pulse" />
         </div>
       )}
-      {shouldLoad && (
-        <iframe
-          src={`/api/pdf-proxy?url=${encodeURIComponent(pdfUrl)}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=Fit&zoom=100`}
-          className="w-full h-full"
-          title={`PDF preview: ${title}`}
-          style={{
-            pointerEvents: 'none',
-            transform: 'scale(1.02)',
-            transformOrigin: 'center center'
-          }}
-          onLoad={handleLoad}
-        />
-      )}
+      <img
+        src={thumbnailUrl}
+        alt={title}
+        loading="lazy"
+        className={`w-full h-full object-cover object-top transition-opacity duration-200 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+        onLoad={() => setLoaded(true)}
+        onError={() => setError(true)}
+      />
     </div>
   )
 }
@@ -327,7 +282,7 @@ export default function DashboardPage() {
       const from = (pageNum - 1) * ITEMS_PER_PAGE
       const to = from + ITEMS_PER_PAGE - 1
 
-      // Build query
+      // Build query - only select fields needed for grid cards (no data blob)
       let query = supabase
         .from('store_documents')
         .select(`
@@ -336,26 +291,24 @@ export default function DashboardPage() {
           file_url,
           created_at,
           store_id,
-          metadata,
-          data,
-          document_type,
           thumbnail_url,
+          metadata,
           product_id,
-          products(id, name, slug, primary_category_id)
-        `, { count: 'exact' })
+          products(id, name, slug)
+        `)
         .eq('store_id', storeId)
         .eq('is_active', true)
         .order('created_at', { ascending: false })
 
-      // Filter by profile_id
+      // Filter by profile_id stored in JSONB data column
       if (profileId) {
-        query = query.eq('data->>profile_id', profileId)
+        query = query.filter('data->>profile_id', 'eq', profileId)
       }
 
-      // Apply pagination
-      query = query.range(from, to)
+      // Fetch one extra to check if there are more pages
+      query = query.range(from, to + 1)
 
-      const { data: paginatedCoas, error: coasError, count } = await query
+      const { data: paginatedCoas, error: coasError } = await query
 
       if (coasError) {
         console.error('❌ Error loading COAs:', coasError)
@@ -363,15 +316,17 @@ export default function DashboardPage() {
         return
       }
 
-      console.log('📄 Loaded', paginatedCoas?.length || 0, 'COAs for page (total:', count, ')')
+      // Check if there are more by seeing if we got the extra item
+      const hasMorePages = (paginatedCoas?.length || 0) > ITEMS_PER_PAGE
+      const pageData = hasMorePages ? paginatedCoas!.slice(0, ITEMS_PER_PAGE) : (paginatedCoas || [])
 
       if (pageNum === 1) {
-        setCoas(paginatedCoas as any || [])
+        setCoas(pageData as any)
       } else {
-        setCoas(prev => [...prev, ...(paginatedCoas as any || [])])
+        setCoas(prev => [...prev, ...(pageData as any)])
       }
 
-      setHasMore((count || 0) > pageNum * ITEMS_PER_PAGE)
+      setHasMore(hasMorePages)
       setIsLoadingMore(false)
     } catch (err) {
       console.error('❌ Error loading COAs:', err)
@@ -761,7 +716,7 @@ export default function DashboardPage() {
                     <div className={`aspect-[8.5/11] bg-white rounded-lg shadow-lg overflow-hidden mb-1.5 transition-all duration-200 relative ${
                       isSelected ? 'ring-2 ring-[#0071e3] scale-[0.96]' : 'group-hover:shadow-xl group-hover:scale-[1.01]'
                     }`}>
-                      <PDFPreview pdfUrl={coa.file_url} title={coa.document_name} />
+                      <COAPreview thumbnailUrl={coa.thumbnail_url} title={coa.document_name} />
 
                       {/* Hover brightness overlay */}
                       <div className={`absolute inset-0 transition-all duration-200 pointer-events-none ${
