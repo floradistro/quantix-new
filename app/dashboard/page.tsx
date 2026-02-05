@@ -224,40 +224,52 @@ export default function DashboardPage() {
       console.log('📂 Loading profiles for store:', storeId)
       setLoadingProfiles(true)
 
-      // Get all profiles for this store (client_store_id is the customer's store)
-      const { data: storeProfiles, error: profilesError } = await supabase
-        .from('document_profiles')
-        .select('id, name')
-        .eq('client_store_id', storeId)
+      // Fetch profiles and document counts in PARALLEL
+      const [profilesResponse, countsResponse] = await Promise.all([
+        // Get all profiles for this store
+        supabase
+          .from('document_profiles')
+          .select('id, name')
+          .eq('client_store_id', storeId),
+        // Get document counts using SQL aggregation (only profile_id, not entire data blob)
+        supabase
+          .rpc('count_documents_by_profile', { p_store_id: storeId })
+      ])
 
-      if (profilesError) {
-        console.error('❌ Error loading profiles:', profilesError)
+      if (profilesResponse.error) {
+        console.error('❌ Error loading profiles:', profilesResponse.error)
         setLoadingProfiles(false)
         return
       }
 
-      // Get document counts per profile_id
-      const { data: docs, error: docsError } = await supabase
-        .from('store_documents')
-        .select('data')
-        .eq('store_id', storeId)
-        .eq('is_active', true)
+      // Build profile counts map from RPC result or fallback
+      const profileCounts: Record<string, number> = {}
 
-      if (docsError) {
-        console.error('❌ Error loading documents:', docsError)
+      if (countsResponse.error) {
+        // Fallback: fetch only profile_id field (minimal payload)
+        console.log('📂 RPC not available, using fallback')
+        const { data: docs } = await supabase
+          .from('store_documents')
+          .select('data->profile_id')
+          .eq('store_id', storeId)
+          .eq('is_active', true)
+
+        docs?.forEach((doc: any) => {
+          const profileId = doc.profile_id
+          if (profileId) {
+            profileCounts[profileId] = (profileCounts[profileId] || 0) + 1
+          }
+        })
+      } else if (countsResponse.data) {
+        countsResponse.data.forEach((row: { profile_id: string; doc_count: number }) => {
+          if (row.profile_id) {
+            profileCounts[row.profile_id] = row.doc_count
+          }
+        })
       }
 
-      // Count documents by profile_id
-      const profileCounts: Record<string, number> = {}
-      docs?.forEach((doc: any) => {
-        const profileId = doc.data?.profile_id
-        if (profileId) {
-          profileCounts[profileId] = (profileCounts[profileId] || 0) + 1
-        }
-      })
-
       // Build profile list with counts
-      const profileList: Profile[] = (storeProfiles || [])
+      const profileList: Profile[] = (profilesResponse.data || [])
         .map((p: any) => ({
           id: p.id,
           name: p.name,

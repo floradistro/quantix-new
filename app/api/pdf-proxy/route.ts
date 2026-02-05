@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+// Dynamic route but with browser caching via headers
 export const dynamic = 'force-dynamic'
-export const revalidate = 0
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,7 +18,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch the PDF from Supabase
-    const response = await fetch(url)
+    const response = await fetch(url, {
+      next: { revalidate: 86400 } // Cache fetch for 24 hours
+    })
 
     if (!response.ok) {
       return NextResponse.json({ error: 'Failed to fetch PDF' }, { status: response.status })
@@ -26,15 +28,13 @@ export async function GET(request: NextRequest) {
 
     const pdfBuffer = await response.arrayBuffer()
 
-    // Return PDF with proper headers (NO CACHE)
+    // Return PDF with aggressive caching - PDFs are immutable
     return new NextResponse(pdfBuffer, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': 'inline',
-        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+        'Cache-Control': 'public, max-age=31536000, immutable',
         'Access-Control-Allow-Origin': '*',
       },
     })

@@ -3,9 +3,8 @@ import { createClient } from '@supabase/supabase-js'
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs'
-// Disable all caching for this API route
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+// Cache COA responses for 1 hour - data rarely changes
+export const revalidate = 3600
 
 export async function GET(
   request: NextRequest,
@@ -108,8 +107,12 @@ export async function GET(
       }
     }
 
-    // Query with service role to bypass RLS
-    const { data, error } = await supabase
+    // Normalize the slug for searching
+    const normalizedSlug = productSlug.replace(/_/g, ' ').toLowerCase()
+    const searchPattern = `%${normalizedSlug}%`
+
+    // First try: exact product slug match (fastest)
+    let { data, error } = await supabase
       .from('store_documents')
       .select(`
         id,
@@ -121,11 +124,39 @@ export async function GET(
         thumbnail_url,
         product_id,
         stores(store_name, slug),
-        products(name, slug)
+        products!inner(name, slug)
       `)
       .eq('store_id', storeId)
       .eq('is_active', true)
+      .eq('products.slug', productSlug.toLowerCase())
       .order('created_at', { ascending: false })
+      .limit(1)
+
+    // Second try: partial product name match
+    if (!data || data.length === 0) {
+      const result = await supabase
+        .from('store_documents')
+        .select(`
+          id,
+          document_name,
+          file_url,
+          created_at,
+          store_id,
+          metadata,
+          thumbnail_url,
+          product_id,
+          stores(store_name, slug),
+          products(name, slug)
+        `)
+        .eq('store_id', storeId)
+        .eq('is_active', true)
+        .ilike('document_name', searchPattern)
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      data = result.data
+      error = result.error
+    }
 
     if (error) throw error
 
@@ -133,42 +164,38 @@ export async function GET(
       return NextResponse.json({ error: 'Certificate not found' }, { status: 404 })
     }
 
-    // Find best match by product slug, name, or document name
-    const normalizedSlug = productSlug.replace(/_/g, ' ').toLowerCase()
+    // Score results (now limited to max 10, not thousands)
     const searchTerms = normalizedSlug.split(' ').filter(t => t.length > 2)
-
     let bestMatch = null
     let matchScore = 0
 
     for (const doc of data) {
       let score = 0
 
-      // Exact matches (highest priority)
       if (doc.products) {
         const product = doc.products as any
         const productSlugLower = product?.slug?.toLowerCase()
         const productNameLower = product?.name?.toLowerCase()
 
         if (productSlugLower === productSlug.toLowerCase()) {
-          score = 100 // Perfect slug match
+          score = 100
         } else if (productNameLower === normalizedSlug) {
-          score = 90 // Perfect name match
+          score = 90
         } else if (productNameLower?.includes(normalizedSlug)) {
-          score = 70 // Partial name match
+          score = 70
         } else if (searchTerms.length >= 2 && searchTerms.every(term => productNameLower?.includes(term))) {
-          score = 60 // All search terms match
+          score = 60
         }
       }
 
-      // Try document name match (for legacy COAs without product_id)
       const docNameLower = doc.document_name?.toLowerCase()
       if (score === 0) {
         if (docNameLower === normalizedSlug) {
-          score = 85 // Perfect document name match
+          score = 85
         } else if (docNameLower?.includes(normalizedSlug)) {
-          score = 65 // Partial document name match
+          score = 65
         } else if (searchTerms.length >= 2 && searchTerms.every(term => docNameLower?.includes(term))) {
-          score = 55 // All search terms in document name
+          score = 55
         }
       }
 
@@ -178,10 +205,7 @@ export async function GET(
       }
     }
 
-    console.log(`[COA Matching] Product slug: "${productSlug}"`)
-    console.log(`[COA Matching] Best match score: ${matchScore}`)
-    console.log(`[COA Matching] Best match: ${bestMatch?.document_name || 'none'}`)
-    console.log(`[COA Matching] Total documents searched: ${data.length}`)
+    console.log(`[COA Matching] Product slug: "${productSlug}", matched: ${bestMatch?.document_name || 'none'} (score: ${matchScore})`)
 
     // Only return a match if we have a good score (> 50)
     // OR if the productSlug looks like a legacy document ID (UUID format)
@@ -202,9 +226,7 @@ export async function GET(
 
     return NextResponse.json({ data: coa }, {
       headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
-        'Pragma': 'no-cache',
-        'Expires': '0'
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
       }
     })
   } catch (error: any) {
