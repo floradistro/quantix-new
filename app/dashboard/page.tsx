@@ -1,60 +1,40 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { FileText, Download, Calendar, Search, Filter, LogOut, Share2, CheckCircle2, Circle, X } from 'lucide-react'
 import { supabase, QUANTIX_STORE_ID } from '@/lib/supabase'
 import Logo from '@/app/components/Logo'
 
-// PDF Preview Component with lazy iframe loading
-function PDFPreview({ pdfUrl, title }: { pdfUrl: string; title: string }) {
-  const [isVisible, setIsVisible] = useState(false)
-  const [isLoaded, setIsLoaded] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
+// Thumbnail Preview - loads cached thumbnail image instead of full PDF
+function ThumbnailPreview({ docId, thumbnailUrl, title }: { docId: string; thumbnailUrl?: string; title: string }) {
+  const [loaded, setLoaded] = useState(false)
+  const [error, setError] = useState(false)
 
-  useEffect(() => {
-    if (!containerRef.current) return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setIsVisible(true)
-          }
-        })
-      },
-      {
-        rootMargin: '300px',
-        threshold: 0.01
-      }
-    )
-
-    observer.observe(containerRef.current)
-    return () => observer.disconnect()
-  }, [])
+  const src = thumbnailUrl || `/api/thumb/${docId}`
 
   return (
-    <div ref={containerRef} className="w-full h-full relative overflow-hidden bg-white">
-      {!isLoaded && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-          <FileText className={`w-12 h-12 text-gray-300 ${isVisible && !isLoaded ? 'animate-pulse' : ''}`} />
+    <div className="w-full h-full relative overflow-hidden bg-gray-100">
+      {!loaded && !error && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <FileText className="w-10 h-10 text-gray-300 animate-pulse" />
         </div>
       )}
-      {isVisible && (
-        <iframe
-          src={`/api/pdf-proxy?url=${encodeURIComponent(pdfUrl)}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=Fit&zoom=100`}
-          className="w-full h-full"
-          title={`PDF preview: ${title}`}
-          loading="lazy"
-          style={{
-            pointerEvents: 'none',
-            transform: 'scale(1.02)',
-            transformOrigin: 'center center'
-          }}
-          onLoad={() => setIsLoaded(true)}
-        />
+      {error && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100">
+          <FileText className="w-10 h-10 text-gray-300 mb-1" />
+          <span className="text-[8px] text-gray-400 font-medium uppercase tracking-wider">PDF</span>
+        </div>
       )}
+      <img
+        src={src}
+        alt={title}
+        loading="lazy"
+        className={`w-full h-full object-cover object-top transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+        onLoad={() => setLoaded(true)}
+        onError={() => setError(true)}
+      />
     </div>
   )
 }
@@ -733,7 +713,7 @@ export default function DashboardPage() {
                     <div className={`aspect-[8.5/11] bg-white rounded-lg shadow-lg overflow-hidden mb-1.5 transition-all duration-200 relative ${
                       isSelected ? 'ring-2 ring-[#0071e3] scale-[0.96]' : 'group-hover:shadow-xl group-hover:scale-[1.01]'
                     }`}>
-                      <PDFPreview pdfUrl={coa.file_url} title={coa.document_name} />
+                      <ThumbnailPreview docId={coa.id} thumbnailUrl={coa.thumbnail_url} title={coa.document_name} />
 
                       {/* Hover brightness overlay */}
                       <div className={`absolute inset-0 transition-all duration-200 pointer-events-none ${
